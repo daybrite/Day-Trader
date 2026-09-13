@@ -16,3 +16,7 @@ webapp = "webapp"
 
 # Web-first: the live build is one click away, so preselect it in the platform picker.
 default-platform = "web"
+
+# A sparkline spanning the whole square. With no centre to move away from,
+# lifting it off the backdrop is the effect that suits it.
+icon-effect = "raise"
