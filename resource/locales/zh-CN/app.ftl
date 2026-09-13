@@ -25,7 +25,7 @@ stat_days = 交易日
 manage_list_section = 已跟踪代码
 manage_add_section = 添加代码
 manage_symbol_label = 代码
-manage_symbol_hint = Yahoo 代码 — AAPL、SPY、GC=F、EURUSD=X。不区分大小写。
+manage_symbol_hint = Yahoo 代码 — SPY、GC=F、BTC-USD、EURUSD=X。不区分大小写。
 manage_add = 添加
 manage_preset_label = 建议
 manage_add_preset = 添加所选
@@ -78,7 +78,7 @@ chip_absolute = 涨跌额
 # 移动端标签页外壳，以及导航栏 + 按钮的添加流程
 nav_symbols = 代码
 add_symbol_title = 添加代码
-add_symbol_body = 请输入 Yahoo 代码 — AAPL、SPY、GC=F。
+add_symbol_body = 请输入 Yahoo 代码 — SPY、GC=F、EURUSD=X。
 menu_add_symbol = 添加代码…
 menu_remove_symbol = 删除代码
 menu_symbols = 代码

@@ -78,7 +78,7 @@ chip_absolute = Variation
 # Coque mobile à onglets et ajout depuis le bouton + de la barre
 nav_symbols = Symboles
 add_symbol_title = Ajouter un symbole
-add_symbol_body = Saisissez un symbole Yahoo — AAPL, SPY, GC=F.
+add_symbol_body = Saisissez un symbole Yahoo — SPY, GC=F, EURUSD=X.
 menu_add_symbol = Ajouter un symbole…
 menu_remove_symbol = Supprimer le symbole
 menu_symbols = Symboles

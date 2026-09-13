@@ -12,15 +12,15 @@ flow:
   - wait_for: { id: nav }
   - wait_for: { id: watchlist-title }
   - assert_text: { id: data-source, key: data_mock }
-  - assert_text: { id: wl-price-AAPL, text: "230.04" }
-  - assert_text: { id: wl-chg-AAPL, text: "−0.45 (0.20%)" }
+  - assert_text: { id: wl-price-SPY, text: "629.15" }
+  - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
   - assert_text: { id: "wl-price-GC=F", text: "3203.55" }
   # Breadth strip: the whole list summarized. Mock data is deterministic, so the counts and
   # the biggest movers are exact.
-  - assert_text: { id: breadth-up, text: "2" }
-  - assert_text: { id: breadth-down, text: "4" }
+  - assert_text: { id: breadth-up, text: "1" }
+  - assert_text: { id: breadth-down, text: "5" }
   - assert_text: { id: breadth-best, text: "SPY" }
-  - assert_text: { id: breadth-worst, text: "GC=F" }
+  - assert_text: { id: breadth-worst, text: "SI=F" }
   # The breadth donut and the performance chart are canvases: nothing to read, so their presence
   # is asserted and the screenshots carry the drawing. The performance card's range picker is the
   # window's shared range — the same signal the detail page's picker binds.
@@ -36,13 +36,13 @@ flow:
   # Cycled a full lap so the persisted setting ends where it started and a rerun sees the
   # same watchlist screenshot as this run did.
   - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-AAPL, text: "−0.20%" }
   - assert_text: { id: wl-chg-SPY, text: "+0.41%" }
+  - assert_text: { id: "wl-chg-GC=F", text: "−0.52%" }
   - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-AAPL, text: "−0.45" }
+  - assert_text: { id: wl-chg-SPY, text: "+2.58" }
   - screenshot: watchlist-chip-absolute
   - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-AAPL, text: "−0.45 (0.20%)" }
+  - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
 
   # Sorting is a VIEW over the manual order (the saved list is untouched), so switching back
   # to Custom restores it. The resulting ORDER is verified by the screenshot — dayscript
@@ -57,15 +57,15 @@ flow:
   #
   # The ROUTE is deliberately not asserted, and symbols are not reached by symbol route. A symbol
   # is a top-level route only in the desktop sidebar; the phone shell pushes it onto the owning
-  # tab's stack, so its route nests instead (src/lib.rs) and `navigate: {route: AAPL}` finds no
+  # tab's stack, so its route nests instead (src/lib.rs) and `navigate: {route: SPY}` finds no
   # such route at all. Both assumptions failed on every phone run. What the tap is FOR — the
   # detail page showing that symbol — is the same at every size, so assert that; and reach the
   # next symbol through its row, since a SECTION key is what means the same thing everywhere.
-  - tap: { id: wl-row-MSFT }
+  - tap: { id: wl-row-DIA }
   - wait_for: { id: detail-price }
-  - assert_text: { id: detail-symbol, text: "MSFT" }
-  - assert_text: { id: detail-price, text: "514.52" }
-  - assert_text: { id: detail-name, text: "Microsoft Corp." }
+  - assert_text: { id: detail-symbol, text: "DIA" }
+  - assert_text: { id: detail-price, text: "443.83" }
+  - assert_text: { id: detail-name, text: "SPDR Dow Jones Industrial Average ETF" }
   # Chart selection (day-piece-charts README "Selection"): a tap on the price chart snaps to the
   # nearest date and draws a rule through it plus a label box naming the date and every series'
   # value there. Hover does the same on a desktop but cannot be scripted — it needs a real
@@ -83,11 +83,11 @@ flow:
   # navigation re-selects the watchlist, so the same two steps serve both shells.
   - nav_back:
   - navigate: { route: watchlist }
-  - tap: { id: wl-row-AAPL }
+  - tap: { id: wl-row-SPY }
   - wait_for: { id: detail-price }
-  - assert_text: { id: detail-symbol, text: "AAPL" }
-  - assert_text: { id: detail-price, text: "230.04" }
-  - assert_text: { id: detail-chg, text: "−0.45 (0.20%)" }
+  - assert_text: { id: detail-symbol, text: "SPY" }
+  - assert_text: { id: detail-price, text: "629.15" }
+  - assert_text: { id: detail-chg, text: "+2.58 (0.41%)" }
   - select: { id: range-picker, index: 0 }
   - screenshot: detail-1m
   - select: { id: range-picker, index: 3 }
@@ -129,7 +129,7 @@ flow:
   # reruns start from the same list.
   - navigate: { route: manage }
   - wait_for: { id: sym-field }
-  - input: { id: sym-field, text: "si=f" }
+  - input: { id: sym-field, text: "hg=f" }
   - tap: { id: sym-add }
   - assert_text: { id: sym-status, key: manage_status_added }
   - tap: { id: sym-add }
@@ -148,9 +148,9 @@ flow:
   # end, and the removal below is what makes that the 6 defaults again.
   - scroll_to: { id: sym-rows }
   - reorder: { id: sym-rows, from: 6, to: 0 }
-  - tap: { id: "sym-row-SI=F" }
+  - tap: { id: "sym-row-HG=F" }
   - wait_for: { id: detail-price }
-  - assert_text: { id: detail-symbol, text: "SI=F" }
+  - assert_text: { id: detail-symbol, text: "HG=F" }
   - navigate: { route: manage }
   - wait_for: { id: sym-field }
   # The watchlist rows live in a recycling list (docs/list.md): rows realize lazily, and the
@@ -158,7 +158,7 @@ flow:
   # (which addresses rows by index, realized or not), then remove it. Removing it from the
   # front restores the original order, and the final swap-and-back exercises reorder alone.
   # Already at the front from the reorder above, so the row is realized and addressable by id.
-  - tap: { id: "sym-remove-SI=F" }
+  - tap: { id: "sym-remove-HG=F" }
   - assert_text: { id: sym-status, key: manage_status_removed }
   - reorder: { id: sym-rows, from: 1, to: 0 }
   - reorder: { id: sym-rows, from: 0, to: 1 }

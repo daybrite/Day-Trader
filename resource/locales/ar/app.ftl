@@ -25,7 +25,7 @@ stat_days = الجلسات
 manage_list_section = الرموز المتابَعة
 manage_add_section = إضافة رمز
 manage_symbol_label = الرمز
-manage_symbol_hint = رمز Yahoo — AAPL أو SPY أو GC=F أو EURUSD=X. حالة الأحرف لا تهم.
+manage_symbol_hint = رمز Yahoo — SPY أو GC=F أو BTC-USD أو EURUSD=X. حالة الأحرف لا تهم.
 manage_add = إضافة
 manage_preset_label = اقتراحات
 manage_add_preset = إضافة المحدد
@@ -78,7 +78,7 @@ chip_absolute = التغير
 # واجهة الجوال بعلامات تبويب والإضافة من زر + في الشريط
 nav_symbols = الرموز
 add_symbol_title = إضافة رمز
-add_symbol_body = أدخل رمز Yahoo — AAPL أو SPY أو GC=F.
+add_symbol_body = أدخل رمز Yahoo — SPY أو GC=F أو EURUSD=X.
 menu_add_symbol = إضافة رمز…
 menu_remove_symbol = حذف الرمز
 menu_symbols = الرموز
