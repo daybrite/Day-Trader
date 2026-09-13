@@ -170,7 +170,9 @@ flow:
   # Cap::Appearance hide that section.
   - navigate: { route: settings }
   - wait_for: { id: language-picker }
-  - assert_text: { id: about-version, text: "0.1.0" }
+  # The version row is present, but its value is not pinned: the label reads CARGO_PKG_VERSION,
+  # so a literal here would fail on every release bump.
+  - assert_visible: { id: about-version }
   - assert_visible: { id: about-source }
   - assert_visible: { id: refresh-all }
   - screenshot: settings

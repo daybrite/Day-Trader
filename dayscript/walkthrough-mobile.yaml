@@ -87,7 +87,8 @@ flow:
   - navigate: { route: settings }
   - wait_for: { id: language-picker }
   - assert_route: { route: settings }
-  - assert_text: { id: about-version, text: "0.1.0" }
+  # Present, not pinned: the label reads CARGO_PKG_VERSION, so a literal fails every release bump.
+  - assert_visible: { id: about-version }
   - assert_visible: { id: about-source }
   - assert_visible: { id: refresh-all }
   - screenshot: m-settings
