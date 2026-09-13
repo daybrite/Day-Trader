@@ -1,9 +1,9 @@
-# Day Tradr — UI strings (https://daybrite.dev/docs/localization). Add a locale by dropping a
+# Day Trader — UI strings (https://daybrite.dev/docs/localization). Add a locale by dropping a
 # sibling folder (e.g. locales/fr/app.ftl) and translating — the generated
 # res::locales::install() in src/lib.rs picks up every locale directory by itself.
 
 language_name = English
-app_title = Day Tradr
+app_title = Day Trader
 app_tagline = Markets
 
 nav_watchlist = Watchlist
@@ -27,7 +27,7 @@ stat_days = Sessions
 manage_list_section = Tracked symbols
 manage_add_section = Add a symbol
 manage_symbol_label = Ticker
-manage_symbol_hint = Yahoo ticker — AAPL, SPY, GC=F, EURUSD=X. Case does not matter.
+manage_symbol_hint = Yahoo ticker — SPY, GC=F, BTC-USD, EURUSD=X. Case does not matter.
 manage_add = Add
 manage_preset_label = Suggestions
 manage_add_preset = Add selected
@@ -80,7 +80,7 @@ chip_absolute = Change
 # Tabbed mobile shell + the add flow reached from the nav bar's + button
 nav_symbols = Symbols
 add_symbol_title = Add a symbol
-add_symbol_body = Enter a Yahoo ticker — AAPL, SPY, GC=F.
+add_symbol_body = Enter a Yahoo ticker — SPY, GC=F, EURUSD=X.
 menu_add_symbol = Add Symbol…
 menu_remove_symbol = Remove Symbol
 menu_symbols = Symbols

@@ -1,7 +1,7 @@
-# Day Tradr — نصوص الواجهة (العربية).
+# Day Trader — نصوص الواجهة (العربية).
 
 language_name = العربية
-app_title = Day Tradr
+app_title = Day Trader
 app_tagline = الأسواق
 
 nav_watchlist = المتابعة

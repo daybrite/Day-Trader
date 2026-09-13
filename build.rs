@@ -7,7 +7,7 @@
 //! removing a file under `resource/` regenerates on the next build.
 fn main() {
     day_build::generate_resources().expect("day-build: resource codegen");
-    println!("cargo:rustc-env=DAY_TRADR_BUILD_DATE={}", build_date());
+    println!("cargo:rustc-env=DAY_TRADER_BUILD_DATE={}", build_date());
 }
 
 // Stamped into the settings About section: the build date (UTC, ISO), from

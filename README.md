@@ -1,14 +1,14 @@
-# Day Tradr
+# Day Trader
 
 A stock watchlist that opens on the day at a glance, built with [Day](https://daybrite.dev) in one
 Rust codebase and rendered with the platform's own widgets on iPhone, Android, Mac, Windows, Linux,
 HarmonyOS, and the web.
 
 <p align="center">
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/ios-uikit/iphone/en/watchlist.png" width="200" alt="The watchlist on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/android-mdc/phone/en/detail.png" width="200" alt="A symbol's detail on Android"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/ios-uikit/iphone/en/detail-1m.png" width="200" alt="One month of a symbol on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/android-mdc/phone/en/manage.png" width="200" alt="Managing the watchlist on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/en/watchlist.png" width="200" alt="The watchlist on iPhone"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/en/detail.png" width="200" alt="A symbol's detail on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/en/detail-1m.png" width="200" alt="One month of a symbol on iPhone"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/en/manage.png" width="200" alt="Managing the watchlist on Android"></kbd>
 </p>
 
 ## Run it in one command
@@ -17,7 +17,7 @@ Install the `day` CLI, then let it clone, build, and launch the app for your des
 
 ```sh
 cargo install day-cli
-day launch --git https://github.com/daybrite/Day-Tradr.git
+day launch --git https://github.com/daybrite/Day-Trader.git
 ```
 
 `day doctor` lists what your platform's toolkit needs and prints the install command for anything
@@ -33,7 +33,7 @@ price, and a change chip. Tap the chip to cycle it between the change, the perce
 and sort the list by your own order, by name, or by today's move.
 
 <p align="center">
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/macos-appkit/en/detail.png" width="720" alt="A symbol's detail on macOS, with the watchlist in the sidebar"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/macos-appkit/en/detail.png" width="720" alt="A symbol's detail on macOS, with the watchlist in the sidebar"></kbd>
 </p>
 
 Tap a symbol for the full picture: a price chart with 20-day and 50-day moving averages you can
@@ -58,23 +58,23 @@ terminal. There is no account and no brokerage connection.
 ## The same code on every platform
 
 These captures come from the app's own CI, which runs the walkthrough on every target and
-publishes the results to the [gallery](https://daybrite.dev/gallery/Day-Tradr/).
+publishes the results to the [gallery](https://daybrite.dev/gallery/Day-Trader/).
 
 | macOS · AppKit | Windows · XAML | Linux · GTK |
 |:---:|:---:|:---:|
-| <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/macos-appkit/en/watchlist.png" width="300" alt="Watchlist on macOS"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/windows-xaml/en/watchlist.png" width="300" alt="Watchlist on Windows"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/linux-gtk/en/watchlist.png" width="300" alt="Watchlist on GTK"></kbd> |
+| <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/macos-appkit/en/watchlist.png" width="300" alt="Watchlist on macOS"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/windows-xaml/en/watchlist.png" width="300" alt="Watchlist on Windows"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/linux-gtk/en/watchlist.png" width="300" alt="Watchlist on GTK"></kbd> |
 
 | Linux · Qt | Web · DOM | HarmonyOS · ArkUI |
 |:---:|:---:|:---:|
-| <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/linux-qt/en/detail.png" width="300" alt="Detail on Qt"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/web-dom/en/detail.png" width="300" alt="Detail in the browser"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/harmony-arkui/en/detail.png" width="150" alt="Detail on HarmonyOS"></kbd> |
+| <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/linux-qt/en/detail.png" width="300" alt="Detail on Qt"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/web-dom/en/detail.png" width="300" alt="Detail in the browser"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/harmony-arkui/en/detail.png" width="150" alt="Detail on HarmonyOS"></kbd> |
 
 The sorted list, the absolute-change chips, and the Arabic layout:
 
 <p align="center">
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/ios-uikit/iphone/en/watchlist-sorted.png" width="200" alt="Watchlist sorted by today's move, on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/android-mdc/phone/en/watchlist-chip-absolute.png" width="200" alt="Absolute-change chips on Android"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/ios-uikit/iphone/ar/watchlist.png" width="200" alt="The watchlist in Arabic on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Tradr/gallery/android-mdc/phone/fr/settings.png" width="200" alt="Settings in French on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/en/watchlist-sorted.png" width="200" alt="Watchlist sorted by today's move, on iPhone"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/en/watchlist-chip-absolute.png" width="200" alt="Absolute-change chips on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/ar/watchlist.png" width="200" alt="The watchlist in Arabic on iPhone"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/fr/settings.png" width="200" alt="Settings in French on Android"></kbd>
 </p>
 
 ## Build from a clone
@@ -98,11 +98,11 @@ A bare `cargo build` uses the crate's default `mock` backend, which is what lets
 cargo build --no-default-features --features appkit    # or gtk / qt / uikit / mdc / xaml / dom
 ```
 
-Set `TRADR_MOCK=1` to replace the Yahoo Finance fetch with a deterministic generated series, so
+Set `TRADER_MOCK=1` to replace the Yahoo Finance fetch with a deterministic generated series, so
 screenshots and assertions come out the same every run:
 
 ```sh
-day launch -p macos-appkit --env TRADR_MOCK=1 --script dayscript/walkthrough.yaml
+day launch -p macos-appkit --env TRADER_MOCK=1 --script dayscript/walkthrough.yaml
 ```
 
 That [dayscript](https://daybrite.dev/docs/dayscript) walks the whole app, and it is the script CI
@@ -131,4 +131,4 @@ day patch --local /path/to/day
 
 `day lint` checks routes, element ids, and locale coverage.
 
-Data by Yahoo Finance. Day Tradr is open source under the Apache-2.0 license.
+Data by Yahoo Finance. Day Trader is open source under the Apache-2.0 license.

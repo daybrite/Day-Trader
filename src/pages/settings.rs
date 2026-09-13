@@ -5,8 +5,8 @@ use crate::quotes;
 use crate::res;
 use day::prelude::*;
 
-const PREF_LOCALE: &str = "tradr.locale"; // a res::locales::ALL tag; absent = system
-const PREF_THEME: &str = "tradr.theme"; // "light" | "dark"; absent = system
+const PREF_LOCALE: &str = "trader.locale"; // a res::locales::ALL tag; absent = system
+const PREF_THEME: &str = "trader.theme"; // "light" | "dark"; absent = system
 
 /// Apply the persisted language and theme overrides — called once from `root()`, right after
 /// the locale catalog installs and before the first page builds. The shared piece owns the
@@ -30,7 +30,7 @@ pub fn settings_page() -> impl Piece {
                 ),
                 labeled(
                     res::str::settings_build_label(),
-                    label(env!("DAY_TRADR_BUILD_DATE")).id("about-build"),
+                    label(env!("DAY_TRADER_BUILD_DATE")).id("about-build"),
                 ),
                 link(res::str::settings_website(), "https://daybrite.dev").id("about-day"),
                 link(res::str::settings_data_link(), "https://finance.yahoo.com")

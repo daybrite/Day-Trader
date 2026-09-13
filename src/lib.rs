@@ -1,4 +1,4 @@
-//! Day Tradr — a stock & commodity quotes app built with [Day](https://daybrite.dev), modeled
+//! Day Trader — a stock & commodity quotes app built with [Day](https://daybrite.dev), modeled
 //! on Apple Stocks. `root()` is the whole UI, shared by every platform: a sidebar nav
 //! whose symbol rows derive reactively from the persisted watchlist (`quotes.rs`), a rich
 //! watchlist overview, a canvas-drawn detail chart per instrument, and manage/settings pages.
@@ -12,7 +12,7 @@ mod quotes;
 // The mobile / embedded entry point. Expands to the export each platform's shell binds
 // against — and to nothing at all on a plain cargo desktop build, where src/main.rs is the
 // entry instead.
-day::day_start!("Day Tradr", root);
+day::day_start!("Day Trader", root);
 
 /// Typed constants for the files under `resource/`, generated at build time by `day-build`
 /// (§18.5): `res::str::<key>()` for every Fluent message plus the `res::locales` catalog.
@@ -117,8 +117,8 @@ fn window_shell() -> impl Piece {
 ///
 /// The tab keys deliberately match the desktop sidebar's item keys (`watchlist`, `manage`,
 /// `settings`), so a route naming a SECTION means the same thing at every size. A symbol does
-/// not: the sidebar owns symbol keys at the top level (`MSFT`), while here a symbol is pushed
-/// onto the owning tab's stack and its route nests under the tab (`watchlist/MSFT`). Use
+/// not: the sidebar owns symbol keys at the top level (`DIA`), while here a symbol is pushed
+/// onto the owning tab's stack and its route nests under the tab (`watchlist/DIA`). Use
 /// [`open_symbol`] rather than `navigate` to reach a symbol from a page that serves both.
 fn tabbed_shell() -> impl Piece {
     nav(tab())

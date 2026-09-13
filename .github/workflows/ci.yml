@@ -25,7 +25,7 @@ jobs:
       # Named rather than "auto": the other dayscript, prefs-window.yaml, drives the desktop
       # Preferences window, which the mobile targets in this matrix have no equivalent of.
       scripts: dayscript/walkthrough.yaml
-      launch-env: TRADR_MOCK=1
+      launch-env: TRADER_MOCK=1
       locales: en fr ar zh-CN
       # Publish the web build to GitHub Pages on every push to main (empty tag-pattern → the
       # default-branch mode). Native release assets still attach on vX.Y.Z tags, independently.

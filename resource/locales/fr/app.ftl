@@ -1,7 +1,7 @@
-# Day Tradr — chaînes d'interface (français).
+# Day Trader — chaînes d'interface (français).
 
 language_name = Français
-app_title = Day Tradr
+app_title = Day Trader
 app_tagline = Marchés
 
 nav_watchlist = Suivi
@@ -25,7 +25,7 @@ stat_days = Séances
 manage_list_section = Symboles suivis
 manage_add_section = Ajouter un symbole
 manage_symbol_label = Symbole
-manage_symbol_hint = Symbole Yahoo — AAPL, SPY, GC=F, EURUSD=X. La casse est ignorée.
+manage_symbol_hint = Symbole Yahoo — SPY, GC=F, BTC-USD, EURUSD=X. La casse est ignorée.
 manage_add = Ajouter
 manage_preset_label = Suggestions
 manage_add_preset = Ajouter la sélection

@@ -1,4 +1,4 @@
-//! Manage the watchlist: add a symbol by ticker (Yahoo Finance format, e.g. `AAPL`, `GC=F`),
+//! Manage the watchlist: add a symbol by ticker (Yahoo Finance format, e.g. `SPY`, `GC=F`),
 //! add from a picker of suggestions, and remove tracked rows. Mirrors the Apple Stocks
 //! edit sheet as a plain form page.
 
@@ -112,7 +112,7 @@ pub fn manage_page() -> impl Piece {
                     labeled(
                         res::str::manage_symbol_label(),
                         text_field(entry)
-                            .placeholder("AAPL".to_string())
+                            .placeholder("SPY".to_string())
                             .id("sym-field"),
                     ),
                     label(res::str::manage_symbol_hint()).font(Font::Footnote),
@@ -157,7 +157,7 @@ pub fn prompt_for_symbol() {
             .message(res::str::add_symbol_body())
             // OK/Cancel come from Day's core catalog, already localized for every locale the
             // app ships (docs/dialogs.md) — no app strings needed for them.
-            .placeholder("AAPL".to_string())
+            .placeholder("SPY".to_string())
             .await;
         if let Some(text) = entered {
             let symbol = quotes::normalize(&text);

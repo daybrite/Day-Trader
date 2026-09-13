@@ -1,6 +1,6 @@
-/* Day Tradr site overrides — inlined after the template's styles, so anything here wins.
+/* Day Trader site overrides — inlined after the template's styles, so anything here wins.
    Kept to a whisper on purpose: the template carries the design; this file exists to hold the
-   few things that are Day Tradr's own. */
+   few things that are Day Trader's own. */
 
 /* The title in the app icon's greens: mint lifting out of the deep green the mark sits on. */
 .rise h1 {

@@ -18,7 +18,7 @@
 //! `GC=F`, FX as `EURUSD=X`. Watchlists saved by an older build used the previous provider's
 //! spelling, so [`migrate_symbol`] rewrites those on load.
 //!
-//! Mock mode (`--env TRADR_MOCK=1`, read through `day::env` so it reaches web-dom as a query
+//! Mock mode (`--env TRADER_MOCK=1`, read through `day::env` so it reaches web-dom as a query
 //! parameter) generates every series from an integer LCG — no floats-in, no transcendentals —
 //! so the SAME prices render on every target and dayscript can assert them verbatim.
 
@@ -27,13 +27,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 /// The prefs key holding the watchlist as a comma-joined symbol list.
-const PREF_SYMBOLS: &str = "tradr.symbols";
+const PREF_SYMBOLS: &str = "trader.symbols";
 /// View preferences, persisted beside the watchlist so the app opens the way it was left.
-const PREF_SORT: &str = "tradr.sort";
-const PREF_CHIP: &str = "tradr.chip";
-const PREF_OVERLAY: &str = "tradr.overlay";
+const PREF_SORT: &str = "trader.sort";
+const PREF_CHIP: &str = "trader.chip";
+const PREF_OVERLAY: &str = "trader.overlay";
 /// The HTTP proxy template quote fetches go through; empty means fetch Yahoo directly.
-const PREF_PROXY: &str = "tradr.proxy";
+const PREF_PROXY: &str = "trader.proxy";
 
 /// What the web build uses unless the user says otherwise.
 ///
@@ -54,32 +54,35 @@ pub const DEFAULT_WEB_PROXY: &str = "https://api.allorigins.win/raw?url=%u";
 /// logical site name rather than as an encoded parameter, which is what `%p` is for.
 pub const DAYBRITE_WEB_PROXY: &str = "https://proxy.daybrite.dev/sites/finance/%p";
 
-/// A fresh install tracks a spread of stocks, an ETF, and two commodities. (TSLA stays in
-/// [`PRESETS`], so it can still be added from the manage page.)
-const DEFAULT_SYMBOLS: [&str; 6] = ["AAPL", "MSFT", "NVDA", "SPY", "GC=F", "CL=F"];
+/// A fresh install tracks markets rather than companies: two broad US stock indexes, the three
+/// benchmark commodities, and long Treasuries. Everything else in [`PRESETS`] can be added from
+/// the manage page.
+const DEFAULT_SYMBOLS: [&str; 6] = ["SPY", "DIA", "GC=F", "SI=F", "CL=F", "TLT"];
 
 /// Display names + mock price anchors for the symbols the app suggests. Live mode overwrites
 /// the name with what Yahoo reports; provider data and tickers are proper nouns, deliberately
 /// not localized. The anchor keeps mock charts in a plausible band per instrument.
 const NAMES: [(&str, &str, f64); 12] = [
-    ("AAPL", "Apple Inc.", 230.0),
-    ("MSFT", "Microsoft Corp.", 500.0),
-    ("NVDA", "NVIDIA Corp.", 175.0),
-    ("TSLA", "Tesla Inc.", 320.0),
     ("SPY", "SPDR S&P 500 ETF", 630.0),
-    ("GOOG", "Alphabet Inc.", 195.0),
-    ("AMZN", "Amazon.com Inc.", 230.0),
-    ("META", "Meta Platforms Inc.", 710.0),
+    ("DIA", "SPDR Dow Jones Industrial Average ETF", 450.0),
+    ("IWM", "iShares Russell 2000 ETF", 225.0),
+    ("EFA", "iShares MSCI EAFE ETF", 90.0),
+    ("TLT", "iShares 20+ Year Treasury Bond ETF", 88.0),
     ("GC=F", "Gold Futures", 3350.0),
     ("SI=F", "Silver Futures", 38.0),
     ("CL=F", "Crude Oil WTI", 68.0),
+    ("NG=F", "Natural Gas Futures", 3.0),
+    ("HG=F", "Copper Futures", 4.5),
     ("EURUSD=X", "Euro / US Dollar", 1.16),
+    ("BTC-USD", "Bitcoin USD", 110_000.0),
 ];
 
-/// The symbols offered by the manage page's picker (a superset of the defaults).
+/// The symbols offered by the manage page's picker (a superset of the defaults): US large and
+/// small caps, international stocks, Treasuries, metals, energy, a currency pair and Bitcoin. The
+/// first is a default, so "Add selected" on a fresh install reports it as already tracked.
 pub const PRESETS: [&str; 12] = [
-    "AAPL", "MSFT", "NVDA", "TSLA", "GOOG", "AMZN", "META", "SPY", "GC=F", "SI=F", "CL=F",
-    "EURUSD=X",
+    "SPY", "DIA", "IWM", "EFA", "TLT", "GC=F", "SI=F", "CL=F", "NG=F", "HG=F", "EURUSD=X",
+    "BTC-USD",
 ];
 
 /// Rewrite a watchlist entry saved by a build that used the previous provider's tickers. Yahoo
@@ -819,7 +822,7 @@ fn drop_state(symbol: &str) {
 /// Is the app forced into deterministic mock mode? `day::env` rather than `std::env`: on
 /// web-dom the flag arrives as a page query parameter, not process environment.
 pub fn is_mock() -> bool {
-    match day::env("TRADR_MOCK") {
+    match day::env("TRADER_MOCK") {
         Some(v) => !(v.is_empty() || v == "0" || v.eq_ignore_ascii_case("false")),
         None => false,
     }
@@ -1064,7 +1067,7 @@ async fn get_text(url: &str, timeout_secs: u64) -> Result<String, QuoteError> {
             .header(
                 "User-Agent",
                 concat!(
-                    "Day-Tradr/",
+                    "Day-Trader/",
                     env!("CARGO_PKG_VERSION"),
                     " (+https://daybrite.dev)"
                 ),
@@ -1199,8 +1202,8 @@ mod tests {
     /// change to it fails HERE, on the host, before it fails on a device.
     #[test]
     fn mock_is_deterministic() {
-        let a = mock("AAPL");
-        let b = mock("AAPL");
+        let a = mock("SPY");
+        let b = mock("SPY");
         assert_eq!(a, b);
         assert_eq!(a.closes.len(), 500);
         // Every close is cent-quantized, so 2-decimal formatting is exact everywhere.

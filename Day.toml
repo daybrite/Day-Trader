@@ -6,8 +6,8 @@
 schema = 1
 
 [app]
-id = "dev.daybrite.daytradr"
-title = "Day Tradr"
+id = "dev.daybrite.daytrader"
+title = "Day Trader"
 build = 3
 targets = ["windows-xaml", "macos-appkit", "linux-gtk", "linux-qt", "ios-uikit", "android-mdc", "harmony-arkui", "web-dom"]
 

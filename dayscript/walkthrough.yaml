@@ -1,12 +1,12 @@
-# Day Tradr walkthrough (https://daybrite.dev/docs/dayscript).
+# Day Trader walkthrough (https://daybrite.dev/docs/dayscript).
 #
 # Run against the deterministic mock so every price below is exact on every target:
 #
-#     day launch -p macos-appkit --env TRADR_MOCK=1 --script dayscript/walkthrough.yaml
+#     day launch -p macos-appkit --env TRADER_MOCK=1 --script dayscript/walkthrough.yaml
 #
 # The mock is integer-LCG arithmetic (src/quotes.rs) — no transcendentals — so these literals
 # hold on wasm and every native architecture alike.
-name: day-tradr-walkthrough
+name: day-trader-walkthrough
 description: Watchlist, detail chart, symbol management, and settings on mock data.
 flow:
   - wait_for: { id: nav }

@@ -6,9 +6,9 @@
     <style name="AppTheme" parent="Theme.Material3Expressive.DayNight.NoActionBar">
         <!-- Charcoal chrome + chart-green accent (colors.xml): the status bar and Day's
              MaterialToolbar pick up colorPrimary; controls pick up the accent. -->
-        <item name="colorPrimary">@color/tradr_primary</item>
-        <item name="colorOnPrimary">@color/tradr_on_primary</item>
-        <item name="colorSecondary">@color/tradr_accent</item>
-        <item name="android:statusBarColor">@color/tradr_primary</item>
+        <item name="colorPrimary">@color/trader_primary</item>
+        <item name="colorOnPrimary">@color/trader_on_primary</item>
+        <item name="colorSecondary">@color/trader_accent</item>
+        <item name="android:statusBarColor">@color/trader_primary</item>
     </style>
 </resources>

@@ -1,5 +1,5 @@
-name: tradr-prefs-window
-description: The Preferences window (docs/windows.md, desktop combos; TRADR_MOCK=1) — the
+name: trader-prefs-window
+description: The Preferences window (docs/windows.md, desktop combos; TRADER_MOCK=1) — the
   auto Settings… menu action opens the settings page as a singleton window.
 flow:
   - wait_for: { id: watchlist-title }

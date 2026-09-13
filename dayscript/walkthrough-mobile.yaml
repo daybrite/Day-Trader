@@ -1,6 +1,6 @@
-# Day Tradr walkthrough, phone shell (https://daybrite.dev/docs/dayscript).
+# Day Trader walkthrough, phone shell (https://daybrite.dev/docs/dayscript).
 #
-#     day launch -p ios-uikit --env TRADR_MOCK=1 --script dayscript/walkthrough-mobile.yaml
+#     day launch -p ios-uikit --env TRADER_MOCK=1 --script dayscript/walkthrough-mobile.yaml
 #
 # WHY A SECOND SCRIPT: the app builds one of two shells from `day::size_class()` (src/lib.rs),
 # and the two do not share a route namespace. The sidebar owns a symbol at the top level
@@ -11,7 +11,7 @@
 # on the next trait pass and the shell flips back mid-run.
 #
 # Prices come from the deterministic mock, so every literal below is exact on every target.
-name: day-tradr-walkthrough-mobile
+name: day-trader-walkthrough-mobile
 description: The three-tab phone shell — watchlist, per-tab stacks, symbol management, settings.
 flow:
   - wait_for: { id: nav }

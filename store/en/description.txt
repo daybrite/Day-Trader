@@ -1,4 +1,4 @@
-Day Tradr is a watchlist for the symbols you actually follow, with the numbers laid out so you can read them at a glance.
+Day Trader is a watchlist for the symbols you actually follow, with the numbers laid out so you can read them at a glance.
 
 The list opens on a summary of the day: how many of your symbols are up, how many are down, and the best and worst movers by name. Every symbol below gets a card — its name, a sparkline of recent movement, the price, and a change chip you can read from across the room. Sort by your own order, by name, or by today's move, and switch every chip between the change, the percentage, or both.
 
@@ -15,8 +15,8 @@ WHAT YOU GET
 
 END-OF-DAY QUOTES
 
-Data comes from Yahoo Finance's free end-of-day quotes. This is not a real-time feed and Day Tradr is not a trading app: there is no account, no brokerage connection, and nothing to buy or sell here.
+Data comes from Yahoo Finance's free end-of-day quotes. This is not a real-time feed and Day Trader is not a trading app: there is no account, no brokerage connection, and nothing to buy or sell here.
 
-Open source, built with the Day framework — one Rust codebase drawing itself with each platform's real native widgets. github.com/daybrite/Day-Tradr
+Open source, built with the Day framework — one Rust codebase drawing itself with each platform's real native widgets. github.com/daybrite/Day-Trader
 
 Data by Yahoo Finance.

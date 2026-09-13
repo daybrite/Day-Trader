@@ -1,4 +1,4 @@
-Day Tradr est une liste de suivi pour les symboles que vous suivez vraiment, avec les chiffres disposés pour être lus d'un coup d'œil.
+Day Trader est une liste de suivi pour les symboles que vous suivez vraiment, avec les chiffres disposés pour être lus d'un coup d'œil.
 
 La liste s'ouvre sur le résumé de la séance : combien de vos symboles montent, combien baissent, et les plus fortes hausses et baisses, nommées. Chaque symbole a ensuite sa carte — son nom, une sparkline des mouvements récents, le cours, et une pastille de variation lisible à distance. Triez selon votre propre ordre, par nom ou par variation du jour, et basculez toutes les pastilles entre la variation, le pourcentage ou les deux.
 
@@ -15,8 +15,8 @@ CE QUE VOUS OBTENEZ
 
 COURS DE CLÔTURE
 
-Les données viennent des cours de clôture gratuits de Yahoo Finance. Ce n'est pas un flux en temps réel et Day Tradr n'est pas une application de trading : il n'y a pas de compte, pas de connexion à un courtier, et rien à acheter ni à vendre ici.
+Les données viennent des cours de clôture gratuits de Yahoo Finance. Ce n'est pas un flux en temps réel et Day Trader n'est pas une application de trading : il n'y a pas de compte, pas de connexion à un courtier, et rien à acheter ni à vendre ici.
 
-Open source, construit avec le framework Day — une seule base de code Rust qui se dessine avec les vrais composants natifs de chaque plateforme. github.com/daybrite/Day-Tradr
+Open source, construit avec le framework Day — une seule base de code Rust qui se dessine avec les vrais composants natifs de chaque plateforme. github.com/daybrite/Day-Trader
 
 Données par Yahoo Finance.

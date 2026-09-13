@@ -1,4 +1,4 @@
-//! Day Tradr's charts, composed from [`day_piece_charts`]: the detail page's price chart with its
+//! Day Trader's charts, composed from [`day_piece_charts`]: the detail page's price chart with its
 //! volume strip and analysis panel, the watchlist's sparklines and performance comparison, the
 //! breadth donut, and the range tracks. Every marks closure is a reactive binding: it reads the
 //! quote and range signals, so a range tap or a refetch re-records the chart in place.

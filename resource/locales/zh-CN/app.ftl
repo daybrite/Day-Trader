@@ -1,7 +1,7 @@
-# Day Tradr — 界面文案（简体中文）。
+# Day Trader — 界面文案（简体中文）。
 
 language_name = 简体中文
-app_title = Day Tradr
+app_title = Day Trader
 app_tagline = 行情
 
 nav_watchlist = 自选
