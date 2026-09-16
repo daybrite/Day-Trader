@@ -1,4 +1,4 @@
-# Day Trader — chaînes d'interface (français).
+# Day Trader : chaînes d'interface (français).
 
 language_name = Français
 app_title = Day Trader

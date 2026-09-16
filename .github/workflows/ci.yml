@@ -33,7 +33,7 @@ jobs:
 
   # The bundled demo data, read through each target's own packaging: `day::resource` out of the
   # app bundle on macOS, `assets/data/demo/` over the page's own origin on web-dom. The unit test
-  # parses those files from the source tree, which leaves the packaging itself unchecked — this is
+  # parses those files from the source tree, which leaves the packaging itself unchecked; this is
   # what catches a change that stops shipping them, or that loses the `GC=F` → `GC_F.json` rewrite.
   #
   # Its own call rather than a second script on the job above, because `launch-env` applies to

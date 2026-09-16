@@ -1,4 +1,4 @@
-# Day Trader — 界面文案（简体中文）。
+# Day Trader：界面文案（简体中文）。
 
 language_name = 简体中文
 app_title = Day Trader

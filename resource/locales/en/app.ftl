@@ -1,5 +1,5 @@
-# Day Trader — UI strings (https://daybrite.dev/docs/localization). Add a locale by dropping a
-# sibling folder (e.g. locales/fr/app.ftl) and translating — the generated
+# Day Trader UI strings (https://daybrite.dev/docs/localization). Add a locale by dropping a
+# sibling folder (e.g. locales/fr/app.ftl) and translating; the generated
 # res::locales::install() in src/lib.rs picks up every locale directory by itself.
 
 language_name = English

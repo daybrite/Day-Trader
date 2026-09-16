@@ -1,6 +1,6 @@
 //! One instrument's page: big price header with change chip, the shared range picker, the price
 //! chart + volume strip, an analysis panel with three readings of the same history, the range
-//! tracks, and a three-column stats grid — every value bound to the symbol's reactive
+//! tracks, and a three-column stats grid. Every value is bound to the symbol's reactive
 //! [`Resource`] so a refetch or range tap updates in place.
 
 use crate::charts;
@@ -86,9 +86,9 @@ fn legend(color: Color, text: LocalizedText) -> impl Piece {
 }
 
 /// The analysis panel under the chart: how far the price sits below its peak, how its daily
-/// moves are distributed, or how each calendar month went — one at a time, picked by a segmented
+/// moves are distributed, or how each calendar month went, one at a time, picked by a segmented
 /// control. Three charts rather than one with switching marks, because each is a different
-/// composition — a time axis, a continuous histogram axis, two categorical axes — and the axes
+/// composition (a time axis, a continuous histogram axis, two categorical axes), and the axes
 /// are properties of the chart, not of its marks. The choice is page-local: a way of looking at
 /// this symbol, not a setting.
 fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
@@ -147,7 +147,7 @@ fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
 }
 
 fn stats_grid(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
-    // The day's and the year's high/low are NOT cells here — the range bars above show them
+    // The day's and the year's high/low are not cells here; the range bars above show them
     // with the price positioned between them, which is strictly more information in less
     // space. What remains is what a bar cannot say.
     grid((
@@ -256,7 +256,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             range_picker,
             charts::price_chart(quote),
             // The overlay switch sits under the chart it controls, with the legend naming the
-            // two lines by their colors — the chart is otherwise three lines with no key.
+            // two lines by their colors; the chart is otherwise three lines with no key.
             row((
                 label(res::str::overlay_label()).font(Font::Callout),
                 toggle(overlay_on).id("overlay-toggle"),
@@ -278,7 +278,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             .grow_w(),
             charts::volume_strip(quote),
             analysis_panel(quote),
-            // Where the price sits inside today's band and inside the year's — the reading the
+            // Where the price sits inside today's band and inside the year's: the reading the
             // stats cells below give as bare numbers.
             row((
                 range_row(

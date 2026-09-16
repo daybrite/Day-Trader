@@ -47,14 +47,14 @@ pub fn manage_page() -> impl Piece {
         });
     };
 
-    // One recycling-list row per tracked symbol (drag to reorder — the order IS the sidebar
+    // One recycling-list row per tracked symbol (drag to reorder; the order is the sidebar
     // order, persisted with the list).
     let rows = list(
         items(move || sym_list.get(), |s: &String| s.clone()),
         move |slot| {
             // Recycling rows (docs/list.md): cells rebind as the list changes or reorders, so
-            // the action reads the slot's CURRENT key at click time and the id re-registers
-            // reactively (`id_of`) — a build-time key would go stale.
+            // the action reads the slot's current key at click time and the id re-registers
+            // reactively (`id_of`), since a build-time key would go stale.
             row((
                 column((
                     label(move || slot.get()).font(Font::Headline),
@@ -150,14 +150,14 @@ pub fn manage_page() -> impl Piece {
     .grow()
 }
 
-/// Ask for a ticker and add it — the `+` in the Symbols tab's navigation bar, and the
-/// desktop's Add Symbol… menu item, share this one flow (docs/dialogs.md).
+/// Ask for a ticker and add it. The `+` in the Symbols tab's navigation bar and the
+/// desktop's Add Symbol… menu item share this one flow (docs/dialogs.md).
 pub fn prompt_for_symbol() {
     day::task(async move {
         let entered = prompt(res::str::add_symbol_title())
             .message(res::str::add_symbol_body())
             // OK/Cancel come from Day's core catalog, already localized for every locale the
-            // app ships (docs/dialogs.md) — no app strings needed for them.
+            // app ships (docs/dialogs.md), so no app strings are needed for them.
             .placeholder("SPY".to_string())
             .await;
         if let Some(text) = entered {

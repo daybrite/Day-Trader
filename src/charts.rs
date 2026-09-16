@@ -24,12 +24,12 @@ pub const RANGES: [(&str, usize); 5] = [
     ("All", usize::MAX),
 ];
 
-/// `c` at opacity `a` — chart fills reuse the trend color at several alphas.
+/// `c` at opacity `a`; chart fills reuse the trend color at several alphas.
 fn faded(c: Color, a: f64) -> Color {
     Color::rgba(c.r, c.g, c.b, a)
 }
 
-/// The moving-average overlays. Deliberately NOT the trend colors: the averages are reference
+/// The moving-average overlays. Not the trend colors: the averages are reference
 /// lines, and reusing green/red would read as a second opinion on the day's direction. Blue and
 /// amber stay legible on both themes and are distinguishable in the common color-blindness
 /// forms, where green-vs-red is not.
@@ -118,7 +118,7 @@ fn percent_label(d: &Datum) -> String {
 pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     let overlay = quotes::overlay();
     // What the pointer is over. Owned here rather than by the chart, so the readout under the
-    // chart and the guides on it are two views of ONE thing (docs/charts.md "Selection").
+    // chart and the guides on it are two views of one thing (docs/charts.md "Selection").
     let sel = Signal::new(None);
     chart(move || {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
@@ -151,9 +151,9 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
                 .line_width(1.0)
                 .dash([5.0, 5.0]),
         );
-        // Moving-average overlays UNDER the price line, so the price always reads on top. Each
+        // Moving-average overlays under the price line, so the price always reads on top. Each
         // starts where it exists (an SMA has no value until it has N samples), and both are
-        // computed over the FULL history rather than the visible window — a 50-day average of
+        // computed over the full history rather than the visible window: a 50-day average of
         // a 22-day window would otherwise be a 22-day average wearing the wrong label. A value
         // outside the pinned domain is clipped by the chart rather than stretching it.
         if overlay.get() {
@@ -207,8 +207,8 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     .y_format(price_label)
     .x_tick_count(4)
     .legend(LegendPosition::Hidden)
-    // A price chart snaps along x: a scrub reads every series at one date — the close and any
-    // overlay together — which is the whole reason to scrub a time series at all. Hover on a
+    // A price chart snaps along x: a scrub reads every series at one date (the close and any
+    // overlay together), which is the reason to scrub a time series at all. Hover on a
     // desktop, tap or drag on a phone; the chart wires all three.
     .select(sel)
     .snap(ch::select::Snap::NearestX)
@@ -419,8 +419,8 @@ pub fn sparkline(quote: Signal<Load<Quote>>) -> impl Piece {
             return Vec::new();
         }
         let (lo, _) = price_domain(closes);
-        // Colored by the DAY change, matching the row's chip (the Stocks convention), not by
-        // the sparkline window's own trend.
+        // Colored by the day's change, matching the row's chip (the Stocks convention), not by
+        // the sparkline window's trend.
         let line = trend_color(q.change() >= 0.0);
         let mut marks: Vec<Mark> = Vec::with_capacity(closes.len() * 2);
         // A thumbnail, so the spline is decoration rather than data. The domain is pinned, which
@@ -510,8 +510,8 @@ pub fn performance_chart(list: Signal<Vec<String>>) -> impl Piece {
 
 /// Risk against return: one point per watchlist symbol, volatility across, annualized return up.
 ///
-/// The chart a price line cannot be — it compares symbols on two numbers at once, and the shape of
-/// the cloud is the reading: a point up and to the LEFT earned more for less movement. Interactive
+/// The chart a price line cannot be. It compares symbols on two numbers at once, and the shape of
+/// the cloud is the reading: a point up and to the left earned more for less movement. Interactive
 /// because a scatter without it is unreadable the moment two points sit close: hovering (or, on a
 /// phone, tapping) names the symbol under the pointer and its two figures.
 pub fn risk_return_scatter(
@@ -564,9 +564,9 @@ pub fn risk_return_scatter(
 
 /// How the watchlist moves together: pairwise correlation of daily returns, as a matrix.
 ///
-/// Two discrete axes and a diverging ramp — the one chart here whose value is entirely in its
-/// COLOR, which is why it needs the selection: a reader can see that a cell is blue without being
-/// able to say whether that is 0.3 or 0.6, and the label under the pointer says which.
+/// Two discrete axes and a diverging ramp. This is the one chart here whose value is entirely in
+/// its color, which is why it needs the selection: a reader can see that a cell is blue without
+/// being able to say whether that is 0.3 or 0.6, and the label under the pointer says which.
 pub fn correlation_matrix(
     list: Signal<Vec<String>>,
     sel: Signal<Option<ch::select::Selection>>,
@@ -608,7 +608,7 @@ pub fn correlation_matrix(
 }
 
 /// A correlation as a color: the loss hue for negative, the gain hue for positive, and near-white
-/// through zero — a DIVERGING ramp, because zero is a meaningful middle here rather than one end
+/// through zero. The ramp diverges because zero is a meaningful middle here rather than one end
 /// of a range.
 fn correlation_color(c: f64) -> Color {
     let t = c.abs().clamp(0.0, 1.0);
@@ -619,7 +619,7 @@ fn correlation_color(c: f64) -> Color {
 /// Where the symbol actually traded: volume summed into price bands, drawn sideways so the bands
 /// line up with the price axis a reader has just been looking at.
 ///
-/// A horizontal bar chart — the y axis discrete, the x continuous — which is the same `bar` mark
+/// A horizontal bar chart (the y axis discrete, the x continuous), which is the same `bar` mark
 /// with its channels the other way round.
 pub fn volume_profile(
     quote: Signal<Load<Quote>>,
@@ -640,7 +640,7 @@ pub fn volume_profile(
             .filter(|(_, _, v)| *v > 0.0)
             .map(|(lo, hi, v)| {
                 let mid = (lo + hi) / 2.0;
-                // The heaviest band in full strength, the rest faded by share — so the level the
+                // The heaviest band in full strength, the rest faded by share, so the level the
                 // symbol traded at most reads first.
                 let share = if peak > 0.0 { v / peak } else { 0.0 };
                 ch::bar(value("Volume", *v), value("Price", format!("{mid:.0}")))
@@ -684,7 +684,7 @@ pub fn breadth_donut(list: Signal<Vec<String>>) -> impl Piece {
 /// which is where today's price sits *within* a range. Used for both the session range and the
 /// 52-week range on the detail page.
 ///
-/// The TRACK only — the endpoint numbers are real labels beside it (see `detail::range_row`),
+/// The track only; the endpoint numbers are real labels beside it (see `detail::range_row`),
 /// because canvas text carries neither the reader's font scale nor RTL mirroring. Two rounded
 /// rules on one x axis whose domain is the band itself, and a two-mark dot where the price is.
 pub fn range_bar(

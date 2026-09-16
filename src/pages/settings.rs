@@ -8,7 +8,7 @@ use day::prelude::*;
 const PREF_LOCALE: &str = "trader.locale"; // a res::locales::ALL tag; absent = system
 const PREF_THEME: &str = "trader.theme"; // "light" | "dark"; absent = system
 
-/// Apply the persisted language and theme overrides — called once from `root()`, right after
+/// Apply the persisted language and theme overrides, called once from `root()`, right after
 /// the locale catalog installs and before the first page builds. The shared piece owns the
 /// mechanics (docs/windows.md), including the env-wins rule: a `DAY_THEME`/`--locale` launch
 /// keeps its override no matter what an earlier run persisted.
@@ -38,7 +38,7 @@ pub fn settings_page() -> impl Piece {
             ))
             .title(res::str::settings_about_section()),
         ),
-        // Language + appearance: the shared settings rows (docs/windows.md —
+        // Language + appearance: the shared settings rows (docs/windows.md,
         // day-piece-settings). Same ids, same keys, same live apply; the appearance row is
         // Cap::Appearance-gated inside the piece.
         AnyPiece::new(
@@ -58,7 +58,7 @@ pub fn settings_page() -> impl Piece {
     // The proxy every quote fetch is routed through. Edited as a template rather than a
     // host, because the two proxy families take the target differently: a placeholder in a
     // query parameter, or a prefix the target is appended to (quotes::proxied). The app ships
-    // no proxy, so this is empty until someone fills it in — and while it is, the web build
+    // no proxy, so this is empty until someone fills it in; while it is empty, the web build
     // reads the bundled snapshots.
     let proxy = quotes::proxy();
     let entry = Signal::new(proxy.get_untracked());
@@ -70,7 +70,7 @@ pub fn settings_page() -> impl Piece {
             labeled(
                 res::str::settings_proxy_label(),
                 text_field(entry)
-                    // An EXAMPLE, not a default: nothing is sent anywhere until the field holds
+                    // An example, not a default: nothing is sent anywhere until the field holds
                     // a template the user chose.
                     .placeholder("https://relay.example/raw?url=%u".to_string())
                     .id("proxy-field"),

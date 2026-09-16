@@ -1,32 +1,32 @@
 //! The data layer: the persisted watchlist, Yahoo Finance fetches, deterministic mock series,
 //! and one memoized reactive [`Resource`] per symbol (https://daybrite.dev/docs/async).
 //!
-//! Live data comes from ONE unofficial Yahoo Finance endpoint over day-part-http (docs/http.md):
+//! Live data comes from one unofficial Yahoo Finance endpoint over day-part-http (docs/http.md):
 //! `https://query1.finance.yahoo.com/v8/finance/chart/<sym>?range=2y&interval=1d`. The response
-//! carries the daily history AND the current quote (`meta`) together, so a symbol costs a single
+//! carries the daily history and the current quote (`meta`) together, so a symbol costs a single
 //! request rather than a history call plus a quote call.
 //!
-//! WHY NOT the CSV download endpoint (`/v7/finance/download/<sym>`): Yahoo closed it to anonymous
-//! callers in 2024 — it answers `401 {"code":"unauthorized"}` without a session cookie and a
-//! matching `crumb` token (verified again 2026-08-11 on `query1` and `query2`). Reaching it means
-//! scraping a cookie + crumb before every fetch, which is both fragile and exactly the flakiness
-//! this app moved away from. The `v8/chart` JSON endpoint needs no cookie, no crumb, and no API
-//! key; it does require a `User-Agent` (an absent one draws `429`), so [`get_text`] sends the
-//! app's own.
+//! The CSV download endpoint (`/v7/finance/download/<sym>`) is not used because Yahoo closed it
+//! to anonymous callers in 2024: it answers `401 {"code":"unauthorized"}` without a session
+//! cookie and a matching `crumb` token (verified again 2026-08-11 on `query1` and `query2`).
+//! Reaching it means scraping a cookie + crumb before every fetch, which is both fragile and
+//! exactly the flakiness this app moved away from. The `v8/chart` JSON endpoint needs no cookie,
+//! crumb, or API key; it does require a `User-Agent` (an absent one draws `429`), so
+//! [`get_text`] sends the app's own.
 //!
 //! Symbols are Yahoo tickers as typed on finance.yahoo.com: `AAPL`, `SPY`, futures as `CL=F` /
 //! `GC=F`, FX as `EURUSD=X`. Watchlists saved by an older build used the previous provider's
 //! spelling, so [`migrate_symbol`] rewrites those on load.
 //!
 //! Mock mode (`--env TRADER_MOCK=1`, read through `day::env` so it reaches web-dom as a query
-//! parameter) generates every series from an integer LCG — no floats-in, no transcendentals —
-//! so the SAME prices render on every target and dayscript can assert them verbatim.
+//! parameter) generates every series from an integer LCG (integer inputs, no transcendentals),
+//! so the same prices render on every target and dayscript can assert them verbatim.
 //!
 //! Demo mode reads the bundled snapshots under `resource/assets/demo/` instead of the network
 //! ([`DataSource`]): what a browser falls back to while no proxy is configured, and what the
 //! demo-data setting serves anywhere. Every page says so while it is on. `--env TRADER_DEMO=1`
 //! asks for it at launch, which is how a scripted run reads the files out of the target's own
-//! bundle — a unit test can only prove they parse in the source tree.
+//! bundle; a unit test can only prove they parse in the source tree.
 
 use day::prelude::*;
 use std::cell::RefCell;
@@ -47,12 +47,12 @@ const PREF_DEMO: &str = "trader.demo";
 ///
 /// A browser will not let a page fetch `query1.finance.yahoo.com`: Yahoo sends no
 /// `Access-Control-Allow-Origin`, so a quote request fails before it leaves the tab. This app
-/// ships no proxy of its own — pointing every install at someone else's relay is a dependency a
-/// quotes app should not take — so the web build with no proxy configured reads the bundled
+/// ships no proxy of its own (pointing every install at someone else's relay is a dependency a
+/// quotes app should not take), so the web build with no proxy configured reads the bundled
 /// snapshots and says so on every page.
 ///
 /// `day build -p web-dom` copies `resource/assets/` into the dist as `assets/data/`, so this is a
-/// same-origin path resolved against the page: no proxy, no CORS.
+/// same-origin path resolved against the page; it needs no proxy and CORS does not apply.
 #[cfg(target_arch = "wasm32")]
 const DEMO_DIR_WEB: &str = "assets/data/demo";
 
@@ -62,7 +62,7 @@ const DEMO_DIR_WEB: &str = "assets/data/demo";
 const DEFAULT_SYMBOLS: [&str; 6] = ["SPY", "DIA", "GC=F", "SI=F", "CL=F", "TLT"];
 
 /// Display names + mock price anchors for the symbols the app suggests. Live mode overwrites
-/// the name with what Yahoo reports; provider data and tickers are proper nouns, deliberately
+/// the name with what Yahoo reports; provider data and tickers are proper nouns and are
 /// not localized. The anchor keeps mock charts in a plausible band per instrument.
 const NAMES: [(&str, &str, f64); 12] = [
     ("SPY", "SPDR S&P 500 ETF", 630.0),
@@ -124,7 +124,7 @@ fn anchor_price(symbol: &str, seed: u64) -> f64 {
         .unwrap_or_else(|| 20.0 + (seed % 48_001) as f64 / 100.0)
 }
 
-/// One tracked instrument's processed data — everything the pages render.
+/// One tracked instrument's processed data: everything the pages render.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Quote {
     pub symbol: String,
@@ -167,7 +167,7 @@ impl Quote {
             .cloned()
             .fold(self.last, f64::min)
     }
-    /// 20-day simple moving average — one of the stats-grid cells.
+    /// 20-day simple moving average, one of the stats-grid cells.
     pub fn sma20(&self) -> f64 {
         let t = tail(&self.closes, 20);
         if t.is_empty() {
@@ -223,7 +223,7 @@ pub fn tail(v: &[f64], n: usize) -> &[f64] {
     &v[v.len().saturating_sub(n)..]
 }
 
-/// Short month names, in calendar order — the columns of the monthly heat map and the labels
+/// Short month names, in calendar order: the columns of the monthly heat map and the labels
 /// every chart's time axis already uses. Proper nouns by convention on a finance chart, so not
 /// localized.
 pub const MONTH_NAMES: [&str; 12] = [
@@ -311,16 +311,16 @@ fn nice_step(raw: f64) -> f64 {
 /// month's last close against the previous month's last close. The first month on record has no
 /// previous close and is left out rather than reported as a partial move from its own first
 /// session.
-/// Annualized return and volatility from a window of closes, both as PERCENTAGES.
+/// Annualized return and volatility from a window of closes, both as percentages.
 ///
-/// Volatility is the standard deviation of DAILY returns scaled by √252 — the trading-day count a
+/// Volatility is the standard deviation of daily returns scaled by √252, the trading-day count a
 /// year has, which is the convention every risk figure in finance is quoted in, so a number here
 /// is comparable to one quoted anywhere else. Return is the total over the window annualized the
 /// same way. `None` for a window too short to say anything about.
 ///
-/// Note the units: [`daily_returns`] is ALREADY in percent, so the deviation needs no scaling of
-/// its own — only the total return, which comes from raw closes, does. Scaling both put the
-/// volatility axis in the thousands of percent.
+/// Note the units: [`daily_returns`] is already in percent, so the deviation needs no scaling;
+/// only the total return, which comes from raw closes, does. Scaling both put the volatility
+/// axis in the thousands of percent.
 pub fn risk_return(closes: &[f64]) -> Option<(f64, f64)> {
     let r = daily_returns(closes);
     if r.len() < 2 || closes.first().is_none_or(|f| *f <= 0.0) {
@@ -342,10 +342,10 @@ pub fn risk_return(closes: &[f64]) -> Option<(f64, f64)> {
     Some((annual, vol))
 }
 
-/// Pearson correlation of two return series, over the overlap from their ENDS.
+/// Pearson correlation of two return series, over the overlap from their ends.
 ///
-/// From the ends because two symbols rarely have the same history length — a newer listing has
-/// fewer days — and the days they share are the recent ones. `None` when they share too few, or
+/// From the ends because two symbols rarely have the same history length (a newer listing has
+/// fewer days), and the days they share are the recent ones. `None` when they share too few, or
 /// when either has no variance at all (a flat series correlates with nothing).
 pub fn correlation(a: &[f64], b: &[f64]) -> Option<f64> {
     let n = a.len().min(b.len());
@@ -367,10 +367,10 @@ pub fn correlation(a: &[f64], b: &[f64]) -> Option<f64> {
     (denom > 0.0).then(|| (cov / denom).clamp(-1.0, 1.0))
 }
 
-/// Volume traded in each price band over a window — the "volume profile" a trader reads to find
-/// where a symbol actually changed hands.
+/// Volume traded in each price band over a window: the "volume profile" a trader reads to find
+/// where a symbol changed hands.
 ///
-/// Each day's whole volume is attributed to the band its CLOSE falls in. That is the honest
+/// Each day's whole volume is attributed to the band its close falls in. That is the
 /// approximation available from daily closes: the true profile needs intraday prints, which this
 /// app's data does not carry, and spreading a day's volume across a fabricated range would invent
 /// trades that never happened. Returns `(band_low, band_high, volume)`, low to high.
@@ -439,12 +439,12 @@ impl std::fmt::Display for QuoteError {
 impl std::error::Error for QuoteError {}
 
 // ---------------------------------------------------------------------------
-// Watchlist store — the settings-Store pattern (a detached root-lifetime signal).
+// Watchlist store: the settings-Store pattern (a detached root-lifetime signal).
 // ---------------------------------------------------------------------------
 
-/// The app's watchlist and the settings that follow it (docs/state.md) — app-wide, because the
-/// watchlist IS the document and a preference chosen in one window is that choice everywhere.
-/// What a window is LOOKING at (its tab, its nav stacks, its chart range) is per-window and
+/// The app's watchlist and the settings that follow it (docs/state.md): app-wide, because the
+/// watchlist is the document and a preference chosen in one window is that choice everywhere.
+/// What a window is looking at (its tab, its nav stacks, its chart range) is per-window and
 /// lives on `crate::Scene`.
 #[derive(Clone, Copy)]
 pub struct Watchlist {
@@ -501,8 +501,8 @@ pub fn symbols() -> Signal<Vec<String>> {
     Watchlist::app().symbols
 }
 
-/// The chart range this WINDOW shows (Apple-Stocks-style: switching range on one symbol
-/// switches it for every symbol — in this window). Index into `charts::RANGES`.
+/// The chart range this window shows (Apple-Stocks-style: switching range on one symbol
+/// switches it for every symbol in this window). Index into `charts::RANGES`.
 pub fn range() -> Signal<usize> {
     crate::scene().range
 }
@@ -513,7 +513,7 @@ pub fn range() -> Signal<usize> {
 pub enum Sort {
     Manual,
     Name,
-    /// Biggest gainer first — the "what moved today" ordering.
+    /// Biggest gainer first, the "what moved today" ordering.
     Change,
 }
 
@@ -538,11 +538,11 @@ impl Sort {
 /// behaviour: the column is one control, not a per-row setting).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChipMode {
-    /// `+1.24 (0.62%)` — absolute move and percentage together.
+    /// `+1.24 (0.62%)`: absolute move and percentage together.
     Both,
-    /// `+0.62%` — percentage alone, the densest reading for scanning a long list.
+    /// `+0.62%`: percentage alone, the densest reading for scanning a long list.
     Percent,
-    /// `+1.24` — the move in the instrument's own units.
+    /// `+1.24`: the move in the instrument's own units.
     Absolute,
 }
 
@@ -587,8 +587,8 @@ pub fn demo() -> Signal<bool> {
     Watchlist::app().demo
 }
 
-/// Write the demo-data choice to disk WITHOUT touching the signal (the toggle already carries
-/// it), and refetch everything when it actually changed — the rows come from the other source
+/// Write the demo-data choice to disk without touching the signal (the toggle already carries
+/// it), and refetch everything when it actually changed: the rows come from the other source
 /// now. Same shape as [`persist_overlay`]: a function that also `set` the signal would close a
 /// loop with the effect that watches it.
 pub fn persist_demo(on: bool) {
@@ -604,7 +604,7 @@ pub fn persist_demo(on: bool) {
 pub enum DataSource {
     /// `TRADER_MOCK=1`: the deterministic generator every walkthrough asserts against.
     Mock,
-    /// The bundled snapshots — chosen in settings, asked for with `TRADER_DEMO=1`, or the web
+    /// The bundled snapshots: chosen in settings, asked for with `TRADER_DEMO=1`, or the web
     /// build's answer to an unset proxy.
     Demo,
     /// Yahoo, directly or through the configured proxy.
@@ -644,20 +644,20 @@ fn source_now() -> DataSource {
 
 /// Route `url` through the proxy `template`.
 ///
-/// `%u` is replaced with the PERCENT-ENCODED url, because the templates that use a placeholder
+/// `%u` is replaced with the percent-encoded url, because the templates that use a placeholder
 /// put it in a query parameter and the target carries its own query string: substituted raw,
-/// `…?url=https://…/chart/AAPL?range=2y&interval=1d` hands `interval` to the PROXY instead of to
+/// `…?url=https://…/chart/AAPL?range=2y&interval=1d` hands `interval` to the proxy instead of to
 /// Yahoo, and the request fails. Measured on a relay that answered 200 for the encoded form and
 /// 500 for the raw one.
 ///
-/// `%p` is replaced with the target's PATH AND QUERY, minus the leading slash. That is the shape
+/// `%p` is replaced with the target's path and query, minus the leading slash. That is the shape
 /// an allowlisting relay uses, where the host is already decided by the template and only the
 /// path travels: `https://relay.example/finance/%p` becomes
 /// `https://relay.example/finance/v8/finance/chart/AAPL?range=2y&interval=1d`. Nothing is
-/// re-encoded here — the path is already escaped, and encoding it again would send the relay a
+/// re-encoded here: the path is already escaped, and encoding it again would send the relay a
 /// literal `%3D` to look up.
 ///
-/// A template with no placeholder is treated as a PREFIX and the raw url is appended — the shape
+/// A template with no placeholder is treated as a prefix and the raw url is appended, the shape
 /// the cors-anywhere family uses (`https://proxy.example/https://target`). An empty template
 /// fetches directly.
 pub fn proxied(template: &str, url: &str) -> String {
@@ -710,11 +710,11 @@ pub fn overlay() -> Signal<bool> {
     Watchlist::app().overlay
 }
 
-/// Write the overlay preference to disk WITHOUT touching the signal.
+/// Write the overlay preference to disk without touching the signal.
 ///
 /// The toggle is bound two-way to [`overlay`], so the signal already carries the user's choice
 /// by the time anything wants to persist it. A persist function that also `set` the signal
-/// would close a loop with the effect that watches it — the effect reads, writes, and re-reads
+/// would close a loop with the effect that watches it: the effect reads, writes, and re-reads
 /// until the reactive runtime trips its cycle guard and the main thread stops responding.
 pub fn persist_overlay(on: bool) {
     day_part_prefs::set(PREF_OVERLAY, if on { "1" } else { "0" });
@@ -821,7 +821,7 @@ pub fn remove(symbol: &str) {
 }
 
 /// Drag-to-reorder (docs/list.md): the row at `from` now sits at `to`. The comma-joined store
-/// already encodes order, so the same persist path covers it — the sidebar follows the same Vec.
+/// already encodes order, so the same persist path covers it; the sidebar follows the same Vec.
 pub fn move_symbol(from: usize, to: usize) {
     let sig = symbols();
     let mut list = sig.get_untracked();
@@ -847,7 +847,7 @@ pub fn reload_all() {
 /// One symbol's memoized fetch.
 type QuoteEntry = (String, day::reactive::Resource<Quote>);
 
-/// Per-symbol quote Resources, memoized by symbol. APP-wide (docs/state.md): a fetch CACHE over
+/// Per-symbol quote Resources, memoized by symbol. App-wide (docs/state.md): a fetch cache over
 /// shared data, so two windows watching the same symbol read one load.
 #[derive(Clone)]
 struct Quotes(Rc<RefCell<Vec<QuoteEntry>>>);
@@ -925,15 +925,15 @@ pub fn demo_file(symbol: &str) -> String {
     format!("{stem}.json")
 }
 
-/// One symbol's bundled snapshot, parsed by the same [`parse_chart`] the live path uses — the
+/// One symbol's bundled snapshot, parsed by the same [`parse_chart`] the live path uses; the
 /// files are real `v8/chart` responses, trimmed to the fields it reads.
 async fn demo_quote(symbol: &str) -> Result<Quote, QuoteError> {
     let file = demo_file(symbol);
     let body = match demo_body(&file).await {
         Ok(body) => body,
-        // A PRESET that cannot be read is a packaging fault, and the message from below says so
+        // A preset that cannot be read is a packaging fault, and the message from below says so
         // in the terms someone debugging the build needs. Any other symbol was typed in by hand
-        // and simply has no snapshot: expected, and "missing from this build" or "HTTP 404" would
+        // and has no snapshot: expected, and "missing from this build" or "HTTP 404" would
         // read as a broken app rather than as the one instrument this mode cannot show.
         Err(e) if PRESETS.contains(&symbol) => return Err(e),
         Err(_) => {
@@ -945,15 +945,15 @@ async fn demo_quote(symbol: &str) -> Result<Quote, QuoteError> {
     parse_chart(&body, symbol)
 }
 
-/// Fetch the snapshot from the page's own origin. The web build has no resource opener — a
-/// browser cannot mmap a bundle file — but the dist carries `resource/assets/` under
+/// Fetch the snapshot from the page's own origin. The web build has no resource opener (a
+/// browser cannot mmap a bundle file), but the dist carries `resource/assets/` under
 /// `assets/data/`, and the transport resolves a relative url against `document.baseURI`.
 #[cfg(target_arch = "wasm32")]
 async fn demo_body(file: &str) -> Result<String, QuoteError> {
     get_text(&format!("{DEMO_DIR_WEB}/{file}"), 15).await
 }
 
-/// Read the snapshot out of the app's own bundle (§18.5). No request, no proxy, no network.
+/// Read the snapshot out of the app's bundle (§18.5); nothing goes over the network.
 #[cfg(not(target_arch = "wasm32"))]
 async fn demo_body(file: &str) -> Result<String, QuoteError> {
     let res = day::resource(crate::res::assets::demo.join(file)).ok_or_else(|| {
@@ -965,8 +965,8 @@ async fn demo_body(file: &str) -> Result<String, QuoteError> {
 }
 
 // ---------------------------------------------------------------------------
-// Mock — an integer LCG random walk. No transcendentals, no platform-varying float paths:
-// the identical prices render on every target, so walkthrough asserts are portable.
+// Mock: an integer LCG random walk with no transcendentals or platform-varying float paths.
+// The identical prices render on every target, so walkthrough asserts are portable.
 // ---------------------------------------------------------------------------
 
 fn fnv(s: &str) -> u64 {
@@ -998,7 +998,7 @@ impl Lcg {
 /// Build a deterministic 500-day series for a symbol. Cent-quantized arithmetic throughout
 /// (every op is exact IEEE add/mul/round on cent multiples), so the identical closes format
 /// on every target. A light mean reversion toward the anchor keeps the walk in a plausible
-/// band — no index collapsing to pennies, no gold at 13.
+/// band; an index never collapses to pennies, and gold never sits at 13.
 pub fn mock(symbol: &str) -> Quote {
     let seed = fnv(symbol);
     let mut rng = Lcg(seed);
@@ -1089,7 +1089,7 @@ fn percent_encode(s: &str) -> String {
 
 /// How many quote fetches may be in flight at once while a proxy is in use.
 ///
-/// MEASURED, not guessed: firing the six default symbols at a public relay together returned one
+/// Measured, not guessed: firing the six default symbols at a public relay together returned one
 /// body and five gateway timeouts (~19s each). Staggered, the same six mostly land. A relay is a
 /// shared resource with its own rate limiting, so the app queues behind itself rather than
 /// stampeding it. Direct fetches talk to Yahoo and need no gate.
@@ -1100,7 +1100,7 @@ thread_local! {
 }
 
 /// Cooperative semaphore: yield to the main-loop executor until a slot frees up. Day's executor
-/// is single-threaded, so a plain counter is enough — there is no other thread to race.
+/// is single-threaded, so a plain counter is enough; there is no other thread to race.
 ///
 /// Yields `None` if `epoch` went stale while waiting, having taken no slot.
 async fn gate_acquire(epoch: u64) -> Option<GateSlot> {
@@ -1125,8 +1125,8 @@ async fn gate_acquire(epoch: u64) -> Option<GateSlot> {
 
 /// Has a reload been asked for since this request started?
 ///
-/// Changing the proxy calls [`reload_all`], and without this check the requests aimed at the OLD
-/// proxy keep the two gate slots for as long as their retries run — up to a couple of minutes,
+/// Changing the proxy calls [`reload_all`], and without this check the requests aimed at the old
+/// proxy keep the two gate slots for as long as their retries run, up to a couple of minutes,
 /// during which the new setting looks like it did nothing. `Resource` already drops a superseded
 /// load, so abandoning one loses nothing.
 fn superseded(epoch: u64) -> bool {
@@ -1135,9 +1135,9 @@ fn superseded(epoch: u64) -> bool {
 
 /// A held slot, given back when it drops.
 ///
-/// Drop rather than a release call at the end of the fetch: superseding a `Resource` load ABORTS
+/// Drop rather than a release call at the end of the fetch: superseding a `Resource` load aborts
 /// it by dropping its future mid-await, so a release written as a statement never runs. Two
-/// leaked slots wedge the gate shut and the app stops fetching at all — which is what changing
+/// leaked slots wedge the gate shut and the app stops fetching at all, which is what changing
 /// the proxy used to do, since that supersedes every load in flight (measured: zero requests
 /// afterwards, forever).
 struct GateSlot;
@@ -1150,7 +1150,7 @@ impl Drop for GateSlot {
 
 /// Fetch with the retry a relay needs. A measured failure rate of roughly one request in three
 /// (500s and gateway timeouts) even sequentially, and a failed symbol shows as a dead row until
-/// the next manual refresh — so a couple of quiet retries buy far more than they cost. Only used
+/// the next manual refresh, so a couple of quiet retries buy far more than they cost. Only used
 /// when a proxy is configured; a direct Yahoo fetch is reliable enough not to need it.
 async fn get_text_resilient(url: &str, proxied: bool) -> Result<String, QuoteError> {
     if !proxied {
@@ -1160,10 +1160,10 @@ async fn get_text_resilient(url: &str, proxied: bool) -> Result<String, QuoteErr
     let Some(_slot) = gate_acquire(epoch).await else {
         return Err(QuoteError("superseded".to_string()));
     };
-    // A relay adds a hop, and a slow-but-successful response took 20s in testing — a 15s
+    // A relay adds a hop, and a slow-but-successful response took 20s in testing; a 15s
     // timeout would have thrown away a body that was on its way.
-    // FIVE attempts, not two or three. Measured success through a public relay is roughly one in
-    // two per try — independent of payload size (a 1y request fares no better than 2y) — so a
+    // Five attempts, not two or three. Measured success through a public relay is roughly one in
+    // two per try, independent of payload size (a 1y request fares no better than 2y), so a
     // symbol needs several goes before its row stops reading "could not load". They cost
     // nothing while they wait: each symbol retries on its own, and rows fill in as they land.
     let mut last = QuoteError("request failed".to_string());
@@ -1190,7 +1190,7 @@ async fn get_text(url: &str, timeout_secs: u64) -> Result<String, QuoteError> {
     let resp = day_part_http::fetch_future(
         day_part_http::Request::get(url)
             // Yahoo answers `429 Too Many Requests` to a request with no User-Agent, on the
-            // very first call. Identify the app honestly rather than impersonating a browser.
+            // very first call. Identify the app by name rather than impersonating a browser.
             .header(
                 "User-Agent",
                 concat!(
@@ -1217,7 +1217,7 @@ async fn get_text(url: &str, timeout_secs: u64) -> Result<String, QuoteError> {
 /// halt, or the not-yet-closed session on some feeds), so rows are kept only where the close is
 /// a number and every array is filtered through the same index.
 ///
-/// An unknown ticker answers 200 with `result: null` and an `error` object — surfaced as an
+/// An unknown ticker answers 200 with `result: null` and an `error` object, surfaced as an
 /// error rather than an empty chart.
 fn parse_chart(body: &str, symbol: &str) -> Result<Quote, QuoteError> {
     let root: serde_json::Value = serde_json::from_str(body)
@@ -1250,7 +1250,7 @@ fn parse_chart(body: &str, symbol: &str) -> Result<Quote, QuoteError> {
     let mut last_row = None;
     for (i, stamp) in stamps.iter().enumerate() {
         let Some(close) = closes_raw.get(i).and_then(serde_json::Value::as_f64) else {
-            continue; // a gap bar — drop the whole row so the arrays stay aligned
+            continue; // a gap bar: drop the whole row so the arrays stay aligned
         };
         let Some(secs) = stamp.as_i64() else { continue };
         closes.push(close);
@@ -1325,8 +1325,8 @@ fn iso_date(epoch_secs: i64) -> String {
 mod tests {
     use super::*;
 
-    /// The walkthrough asserts these exact strings — this test pins the mock generator so a
-    /// change to it fails HERE, on the host, before it fails on a device.
+    /// The walkthrough asserts these exact strings; this test pins the mock generator so a
+    /// change to it fails here, on the host, before it fails on a device.
     #[test]
     fn mock_is_deterministic() {
         let a = mock("SPY");
@@ -1345,7 +1345,7 @@ mod tests {
     /// tested against what Yahoo actually sends rather than a tidied-up idea of it.
     const AAPL_JSON: &str = r#"{"chart":{"result":[{"meta":{"currency":"USD","symbol":"AAPL","shortName":"Apple Inc.","longName":"Apple Inc.","regularMarketPrice":304.91,"chartPreviousClose":309.38,"regularMarketDayHigh":309.97,"regularMarketDayLow":302.79,"regularMarketVolume":34168163},"timestamp":[1786109400,1786368600,1786455000],"indicators":{"quote":[{"open":[311.45001220703125,306.8299865722656,307.75],"high":[314.80999755859375,308.260009765625,309.9700012207031],"low":[310.739990234375,304.6099853515625,302.7900085449219],"close":[313.3299865722656,308.260009765625,304.9100036621094],"volume":[34437200,44812500,34168163]}]}}],"error":null}}"#;
 
-    /// A futures ticker (`=` in the symbol) with a `null` bar — Yahoo's spelling for a session
+    /// A futures ticker (`=` in the symbol) with a `null` bar, Yahoo's spelling for a session
     /// it has no data for. Captured from the same endpoint and trimmed the same way.
     const GOLD_JSON: &str = r#"{"chart":{"result":[{"meta":{"currency":"USD","symbol":"GC=F","shortName":"Gold Dec 26","regularMarketPrice":4467.3,"chartPreviousClose":4452.1,"regularMarketDayHigh":4478.0,"regularMarketDayLow":4441.2,"regularMarketVolume":1234},"timestamp":[1786109400,1786368600,1786455000],"indicators":{"quote":[{"open":[4450.0,null,4460.1],"high":[4470.0,null,4478.0],"low":[4440.0,null,4441.2],"close":[4452.1,null,4467.3],"volume":[900,null,1234]}]}}],"error":null}}"#;
 
@@ -1375,13 +1375,13 @@ mod tests {
     #[test]
     fn chart_drops_null_bars_and_keeps_arrays_aligned() {
         let q = parse_chart(GOLD_JSON, "GC=F").unwrap();
-        assert_eq!(q.name, "Gold Dec 26"); // no longName on this one — shortName carries it
+        assert_eq!(q.name, "Gold Dec 26"); // no longName on this one; shortName carries it
         // The middle bar is null on every array, so two rows survive, still aligned.
         assert_eq!(q.closes, [4452.1, 4467.3]);
         assert_eq!(q.volumes, [900.0, 1234.0]);
         assert_eq!(q.dates, ["2026-08-07", "2026-08-11"]);
         assert_eq!(q.prev_close, 4452.1);
-        assert_eq!(q.open, 4460.1); // the newest KEPT bar, not the null one
+        assert_eq!(q.open, 4460.1); // the newest kept bar, not the null one
     }
 
     #[test]
@@ -1467,8 +1467,8 @@ mod tests {
         assert_eq!(path_and_query("v8/chart?x=1"), "chart?x=1");
     }
 
-    /// The source rule. The web build with no proxy reads the bundled snapshots — that is what
-    /// replaced the shipped default proxy — while a native build fetches Yahoo directly.
+    /// The source rule. The web build with no proxy reads the bundled snapshots (that is what
+    /// replaced the shipped default proxy), while a native build fetches Yahoo directly.
     #[test]
     fn the_source_follows_the_proxy_setting_and_the_platform() {
         use DataSource::{Demo, Live, Mock};
@@ -1490,7 +1490,7 @@ mod tests {
         assert_eq!(resolve_source(true, true, "", true), Mock);
     }
 
-    /// Every preset must have a bundled snapshot, under the name [`demo_file`] derives — the
+    /// Every preset must have a bundled snapshot, under the name [`demo_file`] derives; the
     /// web build with no proxy and the demo setting both read these, so a missing file is a
     /// symbol that cannot load at all.
     #[test]

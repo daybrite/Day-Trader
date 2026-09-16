@@ -4,7 +4,7 @@
 #
 #     day launch -p macos-appkit --env TRADER_MOCK=1 --script dayscript/walkthrough.yaml
 #
-# The mock is integer-LCG arithmetic (src/quotes.rs) — no transcendentals — so these literals
+# The mock is integer-LCG arithmetic (src/quotes.rs) with no transcendentals, so these literals
 # hold on wasm and every native architecture alike.
 name: day-trader-walkthrough
 description: Watchlist, detail chart, symbol management, and settings on mock data.
@@ -23,7 +23,7 @@ flow:
   - assert_text: { id: breadth-worst, text: "SI=F" }
   # The breadth donut and the performance chart are canvases: nothing to read, so their presence
   # is asserted and the screenshots carry the drawing. The performance card's range picker is the
-  # window's shared range — the same signal the detail page's picker binds.
+  # window's shared range, the same signal the detail page's picker binds.
   - assert_visible: { id: breadth-donut }
   - assert_visible: { id: performance-chart }
   - screenshot: watchlist
@@ -32,7 +32,7 @@ flow:
   - screenshot: watchlist-1m
   - select: { id: wl-range-picker, index: 3 }
 
-  # The chip-mode control re-reads EVERY chip at once: both → percent → absolute → both.
+  # The chip-mode control re-reads every chip at once: both → percent → absolute → both.
   # Cycled a full lap so the persisted setting ends where it started and a rerun sees the
   # same watchlist screenshot as this run did.
   - tap: { id: chip-mode }
@@ -44,8 +44,8 @@ flow:
   - tap: { id: chip-mode }
   - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
 
-  # Sorting is a VIEW over the manual order (the saved list is untouched), so switching back
-  # to Custom restores it. The resulting ORDER is verified by the screenshot — dayscript
+  # Sorting is a view over the manual order (the saved list is untouched), so switching back
+  # to Custom restores it. The resulting order is verified by the screenshot, since dayscript
   # addresses watchlist rows by id, not by position.
   - select: { id: sort-picker, index: 2 }
   - assert_value: { id: sort-picker, value: 2 }
@@ -55,12 +55,12 @@ flow:
 
   # A watchlist card is tappable through to the detail page.
   #
-  # The ROUTE is deliberately not asserted, and symbols are not reached by symbol route. A symbol
+  # The route is not asserted, and symbols are not reached by symbol route. A symbol
   # is a top-level route only in the desktop sidebar; the phone shell pushes it onto the owning
   # tab's stack, so its route nests instead (src/lib.rs) and `navigate: {route: SPY}` finds no
-  # such route at all. Both assumptions failed on every phone run. What the tap is FOR — the
-  # detail page showing that symbol — is the same at every size, so assert that; and reach the
-  # next symbol through its row, since a SECTION key is what means the same thing everywhere.
+  # such route at all. Both assumptions failed on every phone run. What the tap is for (the
+  # detail page showing that symbol) is the same at every size, so assert that; and reach the
+  # next symbol through its row, since a section key is what means the same thing everywhere.
   - tap: { id: wl-row-DIA }
   - wait_for: { id: detail-price }
   - assert_text: { id: detail-symbol, text: "DIA" }
@@ -68,16 +68,16 @@ flow:
   - assert_text: { id: detail-name, text: "SPDR Dow Jones Industrial Average ETF" }
   # Chart selection (day-piece-charts README "Selection"): a tap on the price chart snaps to the
   # nearest date and draws a rule through it plus a label box naming the date and every series'
-  # value there. Hover does the same on a desktop but cannot be scripted — it needs a real
-  # pointer — so the tap is what is driven, which is also the phone's own idiom.
+  # value there. Hover does the same on a desktop but cannot be scripted (it needs a real
+  # pointer), so the tap is what is driven, which is also the phone's idiom.
   - tap: { id: price-chart, at: [180, 120] }
   - wait_idle:
   - screenshot: { name: chart-selection }
 
   # Another symbol, reached through the watchlist; the shared range picker re-slices the chart.
   #
-  # BACK first, then the section. On a phone the detail was PUSHED onto the tab's stack, so
-  # selecting the tab again leaves that page on top and the rows underneath stay covered — the
+  # Back first, then the section. On a phone the detail was pushed onto the tab's stack, so
+  # selecting the tab again leaves that page on top and the rows underneath stay covered; the
   # tap then lands on a row nobody can see and the detail never changes. Popping first puts the
   # list back on top; on the desktop sidebar the pop clears the selection and the section
   # navigation re-selects the watchlist, so the same two steps serve both shells.
@@ -119,8 +119,8 @@ flow:
   - assert_visible: { id: analysis-drawdown }
 
 
-  # Leave the watchlist tab at its ROOT before switching tabs. Each tab owns its own push stack,
-  # so a detail page left on this one stays in the tree — and `detail-symbol` below would then
+  # Leave the watchlist tab at its root before switching tabs. Each tab owns its own push stack,
+  # so a detail page left on this one stays in the tree, and `detail-symbol` below would then
   # match the symbol left here rather than the one the Symbols tab just opened. Ids are unique
   # per page, not per tab.
   - nav_back:
@@ -135,13 +135,13 @@ flow:
   - tap: { id: sym-add }
   - assert_text: { id: sym-status, key: manage_status_empty }
   - screenshot: manage
-  # Visit it through its own row: that row's tap calls `open_symbol`, the seam written to serve
-  # both shells, where a symbol ROUTE only exists on the desktop one.
+  # Visit it through its row: that row's tap calls `open_symbol`, the function written to serve
+  # both shells, where a symbol route only exists on the desktop one.
   #
-  # The reorder is what REALIZES the row. `sym-rows` is a recycling list, so the just-appended
+  # The reorder is what realizes the row. `sym-rows` is a recycling list, so the just-appended
   # row exists only as data until something brings it into view, and every list step dayscript
-  # has (`reorder`, `delete_row`) addresses rows by INDEX — there is no id-addressed form to use
-  # instead. Moving it to the front once is what lets BOTH the visit and the removal below name
+  # has (`reorder`, `delete_row`) addresses rows by index; there is no id-addressed form to use
+  # instead. Moving it to the front once is what lets both the visit and the removal below name
   # it by id. The index is trustworthy because this script leaves the list as it found it: a
   # capture matrix keeps the app installed and its state between variants (iOS in particular
   # keeps NSUserDefaults across a relaunch), so every variant starts from the previous one's
@@ -154,7 +154,7 @@ flow:
   - navigate: { route: manage }
   - wait_for: { id: sym-field }
   # The watchlist rows live in a recycling list (docs/list.md): rows realize lazily, and the
-  # just-added row sits beyond the list's viewport — surface it through the reorder seam
+  # just-added row sits beyond the list's viewport, so surface it through the `reorder` step
   # (which addresses rows by index, realized or not), then remove it. Removing it from the
   # front restores the original order, and the final swap-and-back exercises reorder alone.
   # Already at the front from the reorder above, so the row is realized and addressable by id.
@@ -166,7 +166,7 @@ flow:
   - tap: { id: preset-add }
   - assert_text: { id: sym-status, key: manage_status_exists }
 
-  # Settings: About, language picker; the theme picker is NOT asserted — backends without
+  # Settings: About, language picker; the theme picker is not asserted, because backends without
   # Cap::Appearance hide that section.
   - navigate: { route: settings }
   - wait_for: { id: language-picker }

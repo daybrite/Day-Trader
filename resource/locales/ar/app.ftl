@@ -1,4 +1,4 @@
-# Day Trader — نصوص الواجهة (العربية).
+# Day Trader: نصوص الواجهة (العربية).
 
 language_name = العربية
 app_title = Day Trader

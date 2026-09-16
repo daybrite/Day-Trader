@@ -1,6 +1,6 @@
 //! The watchlist: the day's breadth with its donut, every symbol's performance on one indexed
-//! chart over the shared range, then one rich card per tracked symbol — name, sparkline, price,
-//! and a colored change chip — reconciled by `each` (rows keep their state as the list changes)
+//! chart over the shared range, then one rich card per tracked symbol (name, sparkline, price,
+//! and a colored change chip), reconciled by `each` (rows keep their state as the list changes)
 //! and tappable through to the symbol's detail page.
 
 use crate::charts;
@@ -20,7 +20,7 @@ pub fn change_text(q: &quotes::Quote, mode: quotes::ChipMode) -> String {
     }
 }
 
-/// The change chip: white text on the trend color, rounded — the Stocks signature. What it
+/// The change chip: white text on the trend color, rounded, the Stocks signature. What it
 /// reads (absolute, percent, or both) is app-wide state driven by [`chip_mode_button`], so
 /// every chip on every page changes together.
 pub fn change_chip(quote: Signal<day::reactive::Load<quotes::Quote>>, id: String) -> impl Piece {
@@ -71,15 +71,15 @@ fn chip_mode_button() -> impl Piece {
 
 /// Is this window too narrow to put controls side by side? Tracked, so crossing the breakpoint
 /// (a phone rotating, a desktop window dragged narrow) re-lays the controls in place. A backend
-/// that reports no class is treated as roomy — every one that does report is a real measurement.
+/// that reports no class is treated as roomy; every one that does report is a real measurement.
 pub(crate) fn compact_width() -> bool {
     day::size_class().is_some_and(|c| !c.prefers_split())
 }
 
 /// Today's breadth over the whole watchlist: how many symbols are up, how many down, and the
-/// day's biggest mover each way — the summary a list of rows cannot give at a glance.
+/// day's biggest mover each way, which is the summary a list of rows cannot give at a glance.
 fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
-    // BOTH lines take closures: the mover captions carry a live percentage, so a
+    // Both lines take closures: the mover captions carry a live percentage, so a
     // once-formatted `LocalizedText` would freeze at the placeholder the first build saw.
     let cell = |value: Box<dyn Fn() -> String>,
                 caption: Box<dyn Fn() -> String>,
@@ -96,7 +96,7 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
             .grow_w()
             .any()
     };
-    // The mover cells carry the SYMBOL as their value and the percentage in the caption. Both
+    // The mover cells carry the symbol as their value and the percentage in the caption. Both
     // on the value line wraps to two lines on a phone, which drops that cell's caption below
     // the other three and leaves the strip on a ragged baseline.
     let mover_symbol = |best: bool| {
@@ -210,7 +210,7 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
     column((
         header,
         charts::performance_chart(list).id("performance-chart"),
-        // Risk against return — the comparison a price line cannot make.
+        // Risk against return: the comparison a price line cannot make.
         label(res::str::wl_risk_title()).font(Font::Headline),
         charts::risk_return_scatter(list, risk_sel).id("risk-return"),
         readout(risk_sel, res::str::wl_risk_none).id("risk-readout"),
@@ -286,7 +286,7 @@ pub fn watchlist_page() -> impl Piece {
         res::str::sort_name().format(),
         res::str::sort_change().format(),
     ];
-    // `picker` binds a usize; map it through `Sort::ALL` so the enum stays the source of truth.
+    // `picker` binds a usize; map it through `Sort::ALL` so the order is defined by the enum alone.
     let sort_ix = Signal::new(
         quotes::Sort::ALL
             .iter()
@@ -338,9 +338,9 @@ pub fn watchlist_page() -> impl Piece {
                 move || performance_card(list),
             ),
             // List-wide controls, laid out for the width available. Side by side needs room
-            // for a three-segment picker AND the chip button; at compact width that overflows —
-            // on a 392dp phone the localized segments alone eat the row and the button lands
-            // off-screen — so there they stack instead. Built ONCE and placed either way, so
+            // for a three-segment picker and the chip button; at compact width that overflows
+            // (on a 392dp phone the localized segments alone eat the row and the button lands
+            // off-screen), so there they stack instead. Built once and placed either way, so
             // each id has a single call site.
             when(
                 move || !list.get().is_empty(),

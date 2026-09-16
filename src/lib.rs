@@ -1,4 +1,4 @@
-//! Day Trader — a stock & commodity quotes app built with [Day](https://daybrite.dev), modeled
+//! Day Trader, a stock & commodity quotes app built with [Day](https://daybrite.dev), modeled
 //! on Apple Stocks. `root()` is the whole UI, shared by every platform: a sidebar nav
 //! whose symbol rows derive reactively from the persisted watchlist (`quotes.rs`), a rich
 //! watchlist overview, a canvas-drawn detail chart per instrument, and manage/settings pages.
@@ -10,7 +10,7 @@ mod pages;
 mod quotes;
 
 // The mobile / embedded entry point. Expands to the export each platform's shell binds
-// against — and to nothing at all on a plain cargo desktop build, where src/main.rs is the
+// against, and to nothing at all on a plain cargo desktop build, where src/main.rs is the
 // entry instead.
 day::day_start!("Day Trader", root);
 
@@ -23,9 +23,9 @@ pub mod res {
 fn symbol_page(id: &str) -> AnyPiece {
     if quotes::symbols().get_untracked().iter().any(|s| s == id) {
         let page = pages::detail_page(id);
-        // Desktop (docs/windows.md): right-click ▸ Open in New Window — a per-symbol
+        // Desktop (docs/windows.md): right-click ▸ Open in New Window, a per-symbol
         // Normal window (quote resources and the shared range signal are app-global, so
-        // every window tracks the same range — the Stocks-app behavior).
+        // every window tracks the same range, the Stocks-app behavior).
         if capability(Cap::MultiWindow) == Support::Unsupported {
             return page.any();
         }
@@ -60,7 +60,7 @@ pub fn root() -> impl Piece {
     res::locales::install();
     pages::apply_startup();
     // The desktop's Add/Remove Symbol items (docs/menus.md). Installed on every target: the
-    // toolkits with no menu bar simply have nowhere to draw it, and the phones reach the same
+    // toolkits with no menu bar have nowhere to draw it, and the phones reach the same
     // add flow through the Symbols tab's `+` button instead.
     pages::install_app_menu();
     // The Preferences window (docs/windows.md): the settings page as a singleton window on
@@ -83,22 +83,22 @@ pub fn root() -> impl Piece {
         let _ = quotes::resource_for(&s);
     }
 
-    // Two shells over the same pages (docs/size-classes.md). A phone gets the platform's own
-    // top-level idiom — a tab bar — where a sidebar would spend a third of the screen on
+    // Two shells over the same pages (docs/size-classes.md). A phone gets the platform's
+    // top-level idiom, a tab bar, where a sidebar would spend a third of the screen on
     // navigation chrome; anything wider keeps the sidebar, which is what a desktop stocks app
     // looks like. `size_class()` is tracked, so a window dragged across the breakpoint rebuilds
     // into the other shell rather than keeping the one it launched with.
-    // The nav id is applied HERE, to whichever shell was chosen — it is what every dayscript
-    // waits on, and one call site keeps it honest: tagging both shells would read as a
+    // The nav id is applied here, to whichever shell was chosen: it is what every dayscript
+    // waits on, and one call site keeps it unique, since tagging both shells would read as a
     // duplicate to `day lint`, which cannot know the two are mutually exclusive.
-    // File ▸ New Window (docs/windows.md): the SAME shell again, which is why the tab, the two
-    // push stacks and the chart range live on a `Scene` — each window gets its own.
+    // File ▸ New Window (docs/windows.md): the same shell again, which is why the tab, the two
+    // push stacks and the chart range live on a `Scene`; each window gets its own.
     day::register_new_window(window_shell);
 
     window_shell()
 }
 
-/// One window's UI — the first window's, and every File ▸ New Window's.
+/// One window's UI: the first window's, and every File ▸ New Window's.
 fn window_shell() -> impl Piece {
     Scene::scoped(|_scene| {
         // Two shells, two types: `Either` picks one without boxing either.
@@ -111,12 +111,12 @@ fn window_shell() -> impl Piece {
     })
 }
 
-/// The phone shell: three tabs, Watchlist first. EACH tab that can reach a symbol carries its own
-/// push stack, so a symbol opened from a tab returns to that tab's own root — the standard
-/// per-tab-stack behaviour on both platforms.
+/// The phone shell: three tabs, Watchlist first. Each tab that can reach a symbol carries its own
+/// push stack, so a symbol opened from a tab returns to that tab's root, the standard
+/// per-tab-stack behavior on both platforms.
 ///
-/// The tab keys deliberately match the desktop sidebar's item keys (`watchlist`, `manage`,
-/// `settings`), so a route naming a SECTION means the same thing at every size. A symbol does
+/// The tab keys match the desktop sidebar's item keys (`watchlist`, `manage`,
+/// `settings`), so a route naming a section means the same thing at every size. A symbol does
 /// not: the sidebar owns symbol keys at the top level (`DIA`), while here a symbol is pushed
 /// onto the owning tab's stack and its route nests under the tab (`watchlist/DIA`). Use
 /// [`open_symbol`] rather than `navigate` to reach a symbol from a page that serves both.
@@ -143,13 +143,13 @@ fn tabbed_shell() -> impl Piece {
         )
 }
 
-/// Everything ONE WINDOW owns (docs/state.md): which tab it is on, each tab's push stack, and
+/// Everything one window owns (docs/state.md): which tab it is on, each tab's push stack, and
 /// the chart range it is showing. The watchlist itself and every persisted preference are
-/// app-wide (`quotes::Watchlist`) — the list of symbols you track is the same list in every
+/// app-wide (`quotes::Watchlist`): the list of symbols you track is the same list in every
 /// window; where you are in it is not.
 ///
 /// Held outside the piece build (in the window's scope, via `Ambient::scoped`) so a page can
-/// reach it and so a rebuild — a size-class morph between the tabbed and sidebar shells — keeps
+/// reach it and so a rebuild (a size-class morph between the tabbed and sidebar shells) keeps
 /// the tab and both stacks where the user left them.
 #[derive(Clone, Copy)]
 pub(crate) struct Scene {
@@ -173,9 +173,9 @@ impl Ambient for Scene {
 
 /// This window's `Scene`.
 ///
-/// Two resolutions, because there are two moments a page reaches for it. While a piece BUILDS,
-/// the ambient one is this window's. Later — a row tap, a menu item, anything that runs from a
-/// handler — there is no build scope to read from, and the window the user is looking at is the
+/// Two resolutions, because there are two moments a page reaches for it. While a piece builds,
+/// the ambient one is this window's. Later (a row tap, a menu item, anything that runs from a
+/// handler) there is no build scope to read from, and the window the user is looking at is the
 /// one the command means: that is `focused()` (docs/state.md).
 pub(crate) fn scene() -> Scene {
     Scene::try_ambient()
@@ -197,10 +197,10 @@ fn symbols_path() -> Signal<Vec<String>> {
 
 /// Open a symbol's detail page, whichever shell is live.
 ///
-/// The sidebar shell owns symbol keys as top-level routes, so `navigate` claims them. A STACK
-/// does not: its `push` refuses every non-empty key by design, because a stack is driven by its
+/// The sidebar shell owns symbol keys as top-level routes, so `navigate` claims them. A stack
+/// does not: its `push` refuses every non-empty key, because a stack is driven by its
 /// path rather than by route strings (day-pieces/src/nav.rs). A row that only called `navigate`
-/// therefore did nothing at all on a phone — the tap registered and no page opened.
+/// therefore did nothing at all on a phone: the tap registered and no page opened.
 pub fn open_symbol(symbol: &str) {
     if navigate(symbol) {
         return;
@@ -236,7 +236,7 @@ fn watchlist_stack() -> impl Piece {
 fn symbols_stack() -> impl Piece {
     nav_stack(symbols_path(), pages::manage_page())
         .title(res::str::nav_symbols())
-        // Adding acts on the LIST this stack's root shows, so it rides the root page's chrome
+        // Adding acts on the list this stack's root shows, so it rides the root page's chrome
         // (docs/toolbars.md) and is gone from the symbol pages pushed over it.
         .toolbar(
             toolbar_button("tb-add-symbol", res::str::menu_add_symbol())

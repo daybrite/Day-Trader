@@ -2,13 +2,12 @@
 #
 #     day launch -p ios-uikit --env TRADER_MOCK=1 --script dayscript/walkthrough-mobile.yaml
 #
-# WHY A SECOND SCRIPT: the app builds one of two shells from `day::size_class()` (src/lib.rs),
-# and the two do not share a route namespace. The sidebar owns a symbol at the top level
-# (`DIA`); the phone pushes it onto the owning tab's stack, so its route nests under the tab
-# (reported as `watchlist/DIA`). `assert_route` is an exact match, so one script cannot state
-# both. Pinning
-# the class with `size_class:` does not help on a device: the platform re-reports its real class
-# on the next trait pass and the shell flips back mid-run.
+# A second script, because the app builds one of two shells from `day::size_class()`
+# (src/lib.rs), and the two do not share a route namespace. The sidebar owns a symbol at the top
+# level (`DIA`); the phone pushes it onto the owning tab's stack, so its route nests under the
+# tab (reported as `watchlist/DIA`). `assert_route` is an exact match, so one script cannot
+# state both. Pinning the class with `size_class:` does not help on a device: the platform
+# re-reports its real class on the next trait pass and the shell flips back mid-run.
 #
 # Prices come from the deterministic mock, so every literal below is exact on every target.
 name: day-trader-walkthrough-mobile
@@ -36,7 +35,7 @@ flow:
   - tap: { id: chip-mode }
   - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
 
-  # A row opens the symbol INSIDE the Watchlist tab's own stack, so the route NESTS under the
+  # A row opens the symbol inside the Watchlist tab's own stack, so the route nests under the
   # tab key rather than replacing it. This is the difference from the sidebar shell: the tab's
   # segment comes first, then the page its stack holds.
   - tap: { id: wl-row-DIA }
@@ -64,7 +63,7 @@ flow:
   - tap: { id: sym-add }
   - assert_text: { id: sym-status, key: manage_status_added }
   - screenshot: m-symbols
-  # A row here pushes onto the SYMBOLS stack, so the nesting is under that tab instead. Tapped
+  # A row here pushes onto the Symbols stack, so the nesting is under that tab instead. Tapped
   # on a row that is already realized: the just-added HG=F sits past the viewport in the
   # recycling list, and an unrealized row has no element for a tap to find (docs/list.md).
   - tap: { id: sym-row-SPY }
@@ -74,7 +73,7 @@ flow:
   - nav_back: {}
   - wait_for: { id: sym-field }
   # Remove it again so a rerun starts from the same list. Rows realize lazily in the recycling
-  # list (docs/list.md), so reach the just-added row through the reorder seam, which addresses
+  # list (docs/list.md), so reach the just-added row through the `reorder` step, which addresses
   # rows by index whether or not they are realized.
   - scroll_to: { id: sym-rows }
   - reorder: { id: sym-rows, from: 6, to: 0 }
@@ -83,7 +82,7 @@ flow:
   - reorder: { id: sym-rows, from: 1, to: 0 }
   - reorder: { id: sym-rows, from: 0, to: 1 }
 
-  # Settings tab. The theme picker is NOT asserted — backends without Cap::Appearance hide it.
+  # Settings tab. The theme picker is not asserted; backends without Cap::Appearance hide it.
   - navigate: { route: settings }
   - wait_for: { id: language-picker }
   - assert_route: { route: settings }
