@@ -1,0 +1,65 @@
+# Day Trader's bundled demo data (https://daybrite.dev/docs/dayscript).
+#
+# Run with the demo switch on and the mock off, so every quote below comes out of the app's own
+# bundle instead of the network:
+#
+#     day launch -p macos-appkit --env TRADER_DEMO=1 --script dayscript/demo-data.yaml
+#
+# What this covers that a unit test cannot: `every_preset_has_bundled_demo_data` parses the
+# committed files from the SOURCE TREE, while this reads them through the PACKAGED bundle —
+# `day::resource` on a native target, `assets/data/demo/` over the page's own origin on web-dom.
+# Those are the two paths a packaging change can break without touching a line of Rust.
+#
+# No `screenshot:` steps, deliberately. The gallery is the mock walkthrough's, and every scripted
+# run uploads its captures as `screenshots-<target>`: a second run of the same target in one CI
+# run would claim an artifact name that already exists.
+name: day-trader-demo-data
+description: The bundled snapshots, read through each target's own bundle.
+flow:
+  - wait_for: { id: nav }
+  - wait_for: { id: watchlist-title }
+  # The source strip, and the notice every page carries while the data is not live.
+  - assert_text: { id: data-source, key: data_demo }
+  - wait_for: { id: demo-notice }
+  - assert_text: { id: demo-notice, key: demo_notice_chosen }
+  # Symbols are reached by ROW, never by symbol route: a symbol is a top-level route only in the
+  # desktop sidebar, and the phone shell pushes it onto the owning tab's stack instead, so a
+  # `route:` step finds nothing there (walkthrough.yaml says the same at more length).
+  - tap: { id: wl-row-SPY }
+  - wait_for: { id: detail-price }
+  - assert_text: { id: detail-symbol, text: "SPY" }
+  # The name comes from the snapshot's own `meta.shortName`, which is what tells the bundled file
+  # apart from the generator: the mock names SPY "SPDR S&P 500 ETF" out of the static catalog in
+  # src/quotes.rs. Asserting a NAME rather than a price keeps this script free of float
+  # formatting, so it holds on wasm and every native architecture alike.
+  - assert_text: { id: detail-name, text: "State Street SPDR S&P 500 ETF T" }
+  # A load that fails renders an error in place of the chart, so its ABSENCE is the evidence the
+  # file was found, parsed, and had bars in it.
+  - assert_missing: { id: detail-error }
+  # Back first, then the section: on a phone the detail was pushed onto the tab's stack, and
+  # selecting the tab again would leave it on top with the rows covered underneath.
+  - nav_back:
+  - navigate: { route: watchlist }
+  # `GC=F` is the case worth checking. Its file is committed as `GC_F.json`, because `=` is
+  # awkward in a repository path, a URL and an Android asset name alike, so a packaging change
+  # that loses that rewrite fails here and nowhere else.
+  - tap: { id: "wl-row-GC=F" }
+  - wait_for: { id: detail-price }
+  - assert_text: { id: detail-symbol, text: "GC=F" }
+  - assert_text: { id: detail-name, text: "Gold Dec 26" }
+  - assert_missing: { id: detail-error }
+  - nav_back:
+  - navigate: { route: watchlist }
+  # A third symbol, so this proves per-symbol resolution rather than one hard-coded read.
+  - tap: { id: wl-row-DIA }
+  - wait_for: { id: detail-price }
+  - assert_text: { id: detail-symbol, text: "DIA" }
+  - assert_text: { id: detail-name, text: "State Street SPDR Dow Jones Ind" }
+  - assert_missing: { id: detail-error }
+  - nav_back:
+  - navigate: { route: watchlist }
+  # The settings page carries the notice too. The demo-data TOGGLE is not asserted here: it
+  # reflects the persisted setting, which `TRADER_DEMO=1` deliberately leaves alone.
+  - navigate: { route: settings }
+  - wait_for: { id: demo-notice }
+  - assert_text: { id: demo-notice, key: demo_notice_chosen }

@@ -21,6 +21,12 @@
 //! Mock mode (`--env TRADER_MOCK=1`, read through `day::env` so it reaches web-dom as a query
 //! parameter) generates every series from an integer LCG — no floats-in, no transcendentals —
 //! so the SAME prices render on every target and dayscript can assert them verbatim.
+//!
+//! Demo mode reads the bundled snapshots under `resource/assets/demo/` instead of the network
+//! ([`DataSource`]): what a browser falls back to while no proxy is configured, and what the
+//! demo-data setting serves anywhere. Every page says so while it is on. `--env TRADER_DEMO=1`
+//! asks for it at launch, which is how a scripted run reads the files out of the target's own
+//! bundle — a unit test can only prove they parse in the source tree.
 
 use day::prelude::*;
 use std::cell::RefCell;
@@ -34,25 +40,21 @@ const PREF_CHIP: &str = "trader.chip";
 const PREF_OVERLAY: &str = "trader.overlay";
 /// The HTTP proxy template quote fetches go through; empty means fetch Yahoo directly.
 const PREF_PROXY: &str = "trader.proxy";
+/// Whether to read the bundled example quotes instead of fetching. `"1"` is on.
+const PREF_DEMO: &str = "trader.demo";
 
-/// What the web build uses unless the user says otherwise.
+/// Where the web build reads the bundled snapshots from.
 ///
-/// A browser will not let a page fetch `query1.finance.yahoo.com` — Yahoo sends no
-/// `Access-Control-Allow-Origin`, so every quote request fails CORS before it leaves the tab.
-/// A relaying proxy answers with `Access-Control-Allow-Origin: *` and fetches Yahoo server-side,
-/// where the rule does not apply. Native builds talk to Yahoo directly and default to empty:
-/// there is no CORS on a socket, and a proxy would only add a hop and a stranger.
-pub const DEFAULT_WEB_PROXY: &str = "https://api.allorigins.win/raw?url=%u";
-
-/// The Daybrite relay, for anyone who would rather not depend on a public one.
+/// A browser will not let a page fetch `query1.finance.yahoo.com`: Yahoo sends no
+/// `Access-Control-Allow-Origin`, so a quote request fails before it leaves the tab. This app
+/// ships no proxy of its own — pointing every install at someone else's relay is a dependency a
+/// quotes app should not take — so the web build with no proxy configured reads the bundled
+/// snapshots and says so on every page.
 ///
-/// The public relays are open proxies serving whoever finds them, and they behave like it: a
-/// six-symbol load against `api.allorigins.win` completed one request the first time it was
-/// measured, which is why [`get_text_resilient`] gates and retries. `proxy.daybrite.dev` is a
-/// small Cloudflare Worker that reaches an allowlist of endpoints and nothing else — its source
-/// and setup steps live in `proxy/` alongside this app. It takes the target as a PATH under a
-/// logical site name rather than as an encoded parameter, which is what `%p` is for.
-pub const DAYBRITE_WEB_PROXY: &str = "https://proxy.daybrite.dev/sites/finance/%p";
+/// `day build -p web-dom` copies `resource/assets/` into the dist as `assets/data/`, so this is a
+/// same-origin path resolved against the page: no proxy, no CORS.
+#[cfg(target_arch = "wasm32")]
+const DEMO_DIR_WEB: &str = "assets/data/demo";
 
 /// A fresh install tracks markets rather than companies: two broad US stock indexes, the three
 /// benchmark commodities, and long Treasuries. Everything else in [`PRESETS`] can be added from
@@ -450,6 +452,9 @@ pub struct Watchlist {
     /// Bumped by the settings Refresh action; every quote Resource tracks it.
     generation: Signal<u64>,
     proxy: Signal<String>,
+    /// Read the bundled snapshots instead of fetching (the setting; the web build also falls
+    /// back to them on its own while no proxy is set).
+    demo: Signal<bool>,
     sort: Signal<Sort>,
     chip: Signal<ChipMode>,
     overlay: Signal<bool>,
@@ -468,18 +473,15 @@ impl Ambient for Watchlist {
                 .collect(),
             None => DEFAULT_SYMBOLS.iter().map(|s| s.to_string()).collect(),
         };
-        let proxy = match day_part_prefs::get(PREF_PROXY) {
-            // A SAVED empty string is honoured as "direct" — `is_some` distinguishes it from
-            // never having been set, so a web user who deliberately clears the field does not
-            // get the default handed back on next launch.
-            Some(v) => v,
-            None if cfg!(target_arch = "wasm32") => DEFAULT_WEB_PROXY.to_string(),
-            None => String::new(),
-        };
+        // There is no default: an unset proxy means "fetch directly" on a native build and
+        // selects the bundled demo data on the web ([`DataSource`]). A saved value is used
+        // verbatim, the empty string included.
+        let proxy = day_part_prefs::get(PREF_PROXY).unwrap_or_default();
         Watchlist {
             symbols: Signal::new(seed),
             generation: Signal::new(0),
             proxy: Signal::new(proxy),
+            demo: Signal::new(day_part_prefs::get(PREF_DEMO).is_some_and(|v| v == "1")),
             sort: Signal::new(
                 day_part_prefs::get(PREF_SORT)
                     .map(|s| Sort::from_key(&s))
@@ -569,10 +571,7 @@ impl ChipMode {
     }
 }
 
-/// The proxy template, persisted. Seeded from prefs; a fresh install gets
-/// [`DEFAULT_WEB_PROXY`] on the web build and nothing anywhere else. A SAVED empty string is
-/// honoured as "direct" — `is_some` distinguishes it from never having been set, so a web user
-/// who deliberately clears the field does not get the default handed back on next launch.
+/// The proxy template, persisted, empty unless the user sets one.
 pub fn proxy() -> Signal<String> {
     Watchlist::app().proxy
 }
@@ -582,19 +581,80 @@ pub fn set_proxy(template: &str) {
     proxy().set(template.to_string());
 }
 
+/// The demo-data setting, persisted. Two-way bound to the settings toggle, so
+/// [`persist_demo`] writes it through the way [`persist_overlay`] does.
+pub fn demo() -> Signal<bool> {
+    Watchlist::app().demo
+}
+
+/// Write the demo-data choice to disk WITHOUT touching the signal (the toggle already carries
+/// it), and refetch everything when it actually changed — the rows come from the other source
+/// now. Same shape as [`persist_overlay`]: a function that also `set` the signal would close a
+/// loop with the effect that watches it.
+pub fn persist_demo(on: bool) {
+    let was = day_part_prefs::get(PREF_DEMO).is_some_and(|v| v == "1");
+    day_part_prefs::set(PREF_DEMO, if on { "1" } else { "0" });
+    if was != on {
+        reload_all();
+    }
+}
+
+/// Where the quotes on screen come from.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DataSource {
+    /// `TRADER_MOCK=1`: the deterministic generator every walkthrough asserts against.
+    Mock,
+    /// The bundled snapshots — chosen in settings, asked for with `TRADER_DEMO=1`, or the web
+    /// build's answer to an unset proxy.
+    Demo,
+    /// Yahoo, directly or through the configured proxy.
+    Live,
+}
+
+/// The rule, as one function so it can be tested without a reactive runtime or a browser.
+fn resolve_source(mock: bool, demo_setting: bool, proxy: &str, web: bool) -> DataSource {
+    if mock {
+        DataSource::Mock
+    } else if demo_setting || (web && proxy.trim().is_empty()) {
+        DataSource::Demo
+    } else {
+        DataSource::Live
+    }
+}
+
+/// The current source, TRACKED: a page that reads it re-renders when the setting changes.
+pub fn source() -> DataSource {
+    resolve_source(
+        is_mock(),
+        demo().get() || is_demo_env(),
+        &proxy().get(),
+        cfg!(target_arch = "wasm32"),
+    )
+}
+
+/// The same answer for a fetch, which is not a reactive read.
+fn source_now() -> DataSource {
+    resolve_source(
+        is_mock(),
+        demo().get_untracked() || is_demo_env(),
+        &proxy().get_untracked(),
+        cfg!(target_arch = "wasm32"),
+    )
+}
+
 /// Route `url` through the proxy `template`.
 ///
 /// `%u` is replaced with the PERCENT-ENCODED url, because the templates that use a placeholder
 /// put it in a query parameter and the target carries its own query string: substituted raw,
 /// `…?url=https://…/chart/AAPL?range=2y&interval=1d` hands `interval` to the PROXY instead of to
-/// Yahoo, and the request 500s (measured against api.allorigins.win, which answers 200 with the
-/// encoded form and 500 with the raw one).
+/// Yahoo, and the request fails. Measured on a relay that answered 200 for the encoded form and
+/// 500 for the raw one.
 ///
 /// `%p` is replaced with the target's PATH AND QUERY, minus the leading slash. That is the shape
 /// an allowlisting relay uses, where the host is already decided by the template and only the
-/// path travels: `https://proxy.daybrite.dev/sites/finance/%p` becomes
-/// `https://proxy.daybrite.dev/sites/finance/v8/finance/chart/AAPL?range=2y&interval=1d`. Nothing
-/// is re-encoded here — the path is already escaped, and encoding it again would send the relay a
+/// path travels: `https://relay.example/finance/%p` becomes
+/// `https://relay.example/finance/v8/finance/chart/AAPL?range=2y&interval=1d`. Nothing is
+/// re-encoded here — the path is already escaped, and encoding it again would send the relay a
 /// literal `%3D` to look up.
 ///
 /// A template with no placeholder is treated as a PREFIX and the raw url is appended — the shape
@@ -614,7 +674,7 @@ pub fn proxied(template: &str, url: &str) -> String {
 }
 
 /// The path and query of an absolute url, without the leading slash, so a template can end in
-/// the `/` that separates it (`…/sites/finance/` + `v8/finance/chart/AAPL`).
+/// the `/` that separates it (`…/finance/` + `v8/finance/chart/AAPL`).
 ///
 /// A url with no path at all yields an empty string rather than borrowing past the end.
 fn path_and_query(url: &str) -> &str {
@@ -822,17 +882,86 @@ fn drop_state(symbol: &str) {
 /// Is the app forced into deterministic mock mode? `day::env` rather than `std::env`: on
 /// web-dom the flag arrives as a page query parameter, not process environment.
 pub fn is_mock() -> bool {
-    match day::env("TRADER_MOCK") {
+    env_flag("TRADER_MOCK")
+}
+
+/// `TRADER_DEMO=1`: read the bundled snapshots on any target, the answer the demo-data setting
+/// gives. A scripted run uses it to exercise the packaged files through each platform's own
+/// bundle, which is the half [`tests::every_preset_has_bundled_demo_data`] cannot reach.
+pub fn is_demo_env() -> bool {
+    env_flag("TRADER_DEMO")
+}
+
+/// A flag variable: absent, empty, `0` and `false` are off; anything else is on.
+fn env_flag(name: &str) -> bool {
+    match day::env(name) {
         Some(v) => !(v.is_empty() || v == "0" || v.eq_ignore_ascii_case("false")),
         None => false,
     }
 }
 
 async fn load(symbol: String) -> Result<Quote, QuoteError> {
-    if is_mock() {
-        return Ok(mock(&symbol));
+    match source_now() {
+        DataSource::Mock => Ok(mock(&symbol)),
+        DataSource::Demo => demo_quote(&symbol).await,
+        DataSource::Live => fetch(symbol).await,
     }
-    fetch(symbol).await
+}
+
+/// The bundled file for `symbol`: the ticker with everything but letters, digits and `-` folded
+/// to `_`, which is how the files are committed (`GC=F` → `GC_F.json`). Yahoo's `=` is legal in a
+/// path segment but awkward in a repository, a URL and an Android asset name alike.
+pub fn demo_file(symbol: &str) -> String {
+    let stem: String = symbol
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    format!("{stem}.json")
+}
+
+/// One symbol's bundled snapshot, parsed by the same [`parse_chart`] the live path uses — the
+/// files are real `v8/chart` responses, trimmed to the fields it reads.
+async fn demo_quote(symbol: &str) -> Result<Quote, QuoteError> {
+    let file = demo_file(symbol);
+    let body = match demo_body(&file).await {
+        Ok(body) => body,
+        // A PRESET that cannot be read is a packaging fault, and the message from below says so
+        // in the terms someone debugging the build needs. Any other symbol was typed in by hand
+        // and simply has no snapshot: expected, and "missing from this build" or "HTTP 404" would
+        // read as a broken app rather than as the one instrument this mode cannot show.
+        Err(e) if PRESETS.contains(&symbol) => return Err(e),
+        Err(_) => {
+            return Err(QuoteError(format!(
+                "{symbol}: no demo data is bundled for this symbol"
+            )));
+        }
+    };
+    parse_chart(&body, symbol)
+}
+
+/// Fetch the snapshot from the page's own origin. The web build has no resource opener — a
+/// browser cannot mmap a bundle file — but the dist carries `resource/assets/` under
+/// `assets/data/`, and the transport resolves a relative url against `document.baseURI`.
+#[cfg(target_arch = "wasm32")]
+async fn demo_body(file: &str) -> Result<String, QuoteError> {
+    get_text(&format!("{DEMO_DIR_WEB}/{file}"), 15).await
+}
+
+/// Read the snapshot out of the app's own bundle (§18.5). No request, no proxy, no network.
+#[cfg(not(target_arch = "wasm32"))]
+async fn demo_body(file: &str) -> Result<String, QuoteError> {
+    let res = day::resource(crate::res::assets::demo.join(file)).ok_or_else(|| {
+        QuoteError(format!(
+            "{file}: the bundled demo data is missing from this build"
+        ))
+    })?;
+    Ok(String::from_utf8_lossy(res.as_slice()).into_owned())
 }
 
 // ---------------------------------------------------------------------------
@@ -960,11 +1089,10 @@ fn percent_encode(s: &str) -> String {
 
 /// How many quote fetches may be in flight at once while a proxy is in use.
 ///
-/// MEASURED, not guessed: firing the six default symbols at `api.allorigins.win` together
-/// returned one body and five gateway timeouts (~19s each) — which is precisely the "could not
-/// load" wall a web user meets on first launch. Staggered, the same six mostly land. A public
-/// relay is a shared resource with its own rate limiting, so the app queues behind itself
-/// rather than stampeding it. Direct fetches talk to Yahoo and need no gate.
+/// MEASURED, not guessed: firing the six default symbols at a public relay together returned one
+/// body and five gateway timeouts (~19s each). Staggered, the same six mostly land. A relay is a
+/// shared resource with its own rate limiting, so the app queues behind itself rather than
+/// stampeding it. Direct fetches talk to Yahoo and need no gate.
 const PROXY_MAX_IN_FLIGHT: usize = 2;
 
 thread_local! {
@@ -1020,11 +1148,10 @@ impl Drop for GateSlot {
     }
 }
 
-/// Fetch with the retry a public relay needs. Measured failure rate against allorigins was
-/// roughly one request in three (500s and 522 gateway timeouts) even sequentially, and a failed
-/// symbol shows as a dead row until the next manual refresh — so a couple of quiet retries buy
-/// far more than they cost. Only used when a proxy is configured; a direct Yahoo fetch is
-/// reliable enough not to need it.
+/// Fetch with the retry a relay needs. A measured failure rate of roughly one request in three
+/// (500s and gateway timeouts) even sequentially, and a failed symbol shows as a dead row until
+/// the next manual refresh — so a couple of quiet retries buy far more than they cost. Only used
+/// when a proxy is configured; a direct Yahoo fetch is reliable enough not to need it.
 async fn get_text_resilient(url: &str, proxied: bool) -> Result<String, QuoteError> {
     if !proxied {
         return get_text(url, 15).await;
@@ -1035,7 +1162,7 @@ async fn get_text_resilient(url: &str, proxied: bool) -> Result<String, QuoteErr
     };
     // A relay adds a hop, and a slow-but-successful response took 20s in testing — a 15s
     // timeout would have thrown away a body that was on its way.
-    // FIVE attempts, not two or three. Measured success against allorigins is roughly one in
+    // FIVE attempts, not two or three. Measured success through a public relay is roughly one in
     // two per try — independent of payload size (a 1y request fares no better than 2y) — so a
     // symbol needs several goes before its row stops reading "could not load". They cost
     // nothing while they wait: each symbol retries on its own, and rows fill in as they land.
@@ -1290,12 +1417,10 @@ mod tests {
         assert_eq!(proxied("   ", url), url);
         // Placeholder: ENCODED, so the target's own `&interval=` stays part of the target
         // rather than becoming a parameter of the proxy (measured: raw substitution 500s).
-        // Spelled out rather than read from DEFAULT_WEB_PROXY: this pins the ENCODING RULE, and
-        // it must keep passing when the shipped default moves to a relay that takes a path.
-        const ENCODED: &str = "https://api.allorigins.win/raw?url=%u";
+        const ENCODED: &str = "https://relay.example/raw?url=%u";
         let via = proxied(ENCODED, url);
         assert!(
-            via.starts_with("https://api.allorigins.win/raw?url=https%3A%2F%2F"),
+            via.starts_with("https://relay.example/raw?url=https%3A%2F%2F"),
             "{via}"
         );
         assert!(via.contains("%3Frange%3D2y%26interval%3D1d"), "{via}");
@@ -1315,34 +1440,76 @@ mod tests {
             proxied(ENCODED, fut).contains("GC%253DF"),
             "double-encoded once"
         );
-        // Whatever the shipped default is, it must be a template that routes somewhere other
-        // than Yahoo — an empty one would send the web build straight into a CORS wall.
-        assert!(!DEFAULT_WEB_PROXY.trim().is_empty());
-        assert!(!proxied(DEFAULT_WEB_PROXY, url).contains("query1.finance.yahoo.com/v8"));
     }
 
-    /// The path form, which is what an allowlisting relay like `proxy.daybrite.dev` expects.
-    /// These are the exact urls the Worker was verified against.
+    /// The path form, which is what an allowlisting relay expects: the host comes from the
+    /// template and only the path travels.
     #[test]
     fn path_templates_carry_the_path_verbatim() {
+        const PATH_FORM: &str = "https://relay.example/finance/%p";
         let url = "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=2y&interval=1d";
         assert_eq!(
-            proxied(DAYBRITE_WEB_PROXY, url),
-            "https://proxy.daybrite.dev/sites/finance/v8/finance/chart/AAPL?range=2y&interval=1d"
+            proxied(PATH_FORM, url),
+            "https://relay.example/finance/v8/finance/chart/AAPL?range=2y&interval=1d"
         );
         // The ticker's escape is passed through as-is; re-encoding it would ask the relay for a
         // symbol spelled `GC%3DF`.
         let fut = "https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?range=2y&interval=1d";
         assert_eq!(
-            proxied(DAYBRITE_WEB_PROXY, fut),
-            "https://proxy.daybrite.dev/sites/finance/v8/finance/chart/GC%3DF?range=2y&interval=1d"
+            proxied(PATH_FORM, fut),
+            "https://relay.example/finance/v8/finance/chart/GC%3DF?range=2y&interval=1d"
         );
         // The template decides the host, so the target's own host never appears in the result.
-        assert!(!proxied(DAYBRITE_WEB_PROXY, url).contains("yahoo.com"));
+        assert!(!proxied(PATH_FORM, url).contains("yahoo.com"));
         // Degenerate inputs stay in bounds rather than panicking on a slice.
         assert_eq!(path_and_query("https://example.com"), "");
         assert_eq!(path_and_query("https://example.com/"), "");
         assert_eq!(path_and_query("v8/chart?x=1"), "chart?x=1");
+    }
+
+    /// The source rule. The web build with no proxy reads the bundled snapshots — that is what
+    /// replaced the shipped default proxy — while a native build fetches Yahoo directly.
+    #[test]
+    fn the_source_follows_the_proxy_setting_and_the_platform() {
+        use DataSource::{Demo, Live, Mock};
+        // web = true is the browser; proxy "" is unset.
+        assert_eq!(resolve_source(false, false, "", true), Demo);
+        assert_eq!(resolve_source(false, false, "   ", true), Demo);
+        assert_eq!(
+            resolve_source(false, false, "https://relay.example/%p", true),
+            Live
+        );
+        // Native with no proxy talks to Yahoo on a socket, where no CORS rule applies.
+        assert_eq!(resolve_source(false, false, "", false), Live);
+        // The setting wins over both, and mock mode wins over everything.
+        assert_eq!(
+            resolve_source(false, true, "https://relay.example/%p", false),
+            Demo
+        );
+        assert_eq!(resolve_source(true, false, "", false), Mock);
+        assert_eq!(resolve_source(true, true, "", true), Mock);
+    }
+
+    /// Every preset must have a bundled snapshot, under the name [`demo_file`] derives — the
+    /// web build with no proxy and the demo setting both read these, so a missing file is a
+    /// symbol that cannot load at all.
+    #[test]
+    fn every_preset_has_bundled_demo_data() {
+        assert_eq!(demo_file("GC=F"), "GC_F.json");
+        assert_eq!(demo_file("EURUSD=X"), "EURUSD_X.json");
+        assert_eq!(demo_file("BTC-USD"), "BTC-USD.json");
+        assert_eq!(demo_file("SPY"), "SPY.json");
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resource/assets/demo");
+        for symbol in PRESETS {
+            let path = dir.join(demo_file(symbol));
+            let body = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+            // The committed file has to survive the live parser, not merely exist.
+            let q = parse_chart(&body, symbol).expect("bundled snapshot parses");
+            assert_eq!(q.symbol, symbol);
+            assert!(q.closes.len() > 250, "{symbol}: {} bars", q.closes.len());
+            assert!(q.last > 0.0 && q.low <= q.high);
+        }
     }
 
     #[test]

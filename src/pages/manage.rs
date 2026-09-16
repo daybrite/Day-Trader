@@ -106,6 +106,7 @@ pub fn manage_page() -> impl Piece {
 
     scroll(
         column((
+            super::demo_notice(),
             form((
                 section((rows,)).title(res::str::manage_list_section()),
                 section((

@@ -10,6 +10,7 @@ nav_settings = Réglages
 watchlist_title = Liste de suivi
 data_mock = Données fictives · valeurs déterministes
 data_live = Données en direct
+data_demo = Données de démonstration
 data_attribution = Données Yahoo Finance — cours de clôture gratuits.
 
 detail_loading = Chargement des cours…
@@ -86,10 +87,13 @@ menu_symbols = Symboles
 # Proxy réseau pour les requêtes de cours
 settings_proxy_section = Réseau
 settings_proxy_label = Proxy
-settings_proxy_hint = Les requêtes de cours passent par là. Utilisez %u à l'endroit où insérer l'URL Yahoo complète, ou %p pour n'insérer que son chemin ; un modèle sans l'un ni l'autre est traité comme un préfixe. Laissez vide pour interroger directement — la version web a besoin d'un proxy, les navigateurs bloquant les requêtes intersites vers Yahoo.
+settings_proxy_hint = Les requêtes de cours passent par là. Utilisez %u à l'endroit où insérer l'URL Yahoo complète, ou %p pour n'insérer que son chemin ; un modèle sans l'un ni l'autre sert de préfixe. Laissez-le vide pour interroger Yahoo directement — un navigateur bloque cette requête intersite, et la version web affiche alors les données de démonstration.
 settings_proxy_apply = Appliquer
-settings_proxy_relay = Utiliser le relais Daybrite
 settings_proxy_direct = Interroger directement
+settings_demo_label = Utiliser les données de démonstration
+settings_demo_hint = Lit les cours d'exemple fournis avec l'application au lieu de les télécharger. La version web les utilise d'elle-même tant qu'aucun proxy n'est défini.
+demo_notice_no_proxy = Données de démonstration affichées : aucun proxy de requêtes web n'est défini.
+demo_notice_chosen = Données de démonstration affichées, choisies dans les réglages.
 
 # Le panneau d’analyse sous le graphique, et la carte de performance de la liste
 analysis_label = Analyse

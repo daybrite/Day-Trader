@@ -226,6 +226,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
     scroll(
         column((
             header,
+            super::demo_notice(),
             when(
                 move || quote.with(|l| l.is_loading()),
                 || {

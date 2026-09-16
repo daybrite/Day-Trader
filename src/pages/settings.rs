@@ -57,15 +57,22 @@ pub fn settings_page() -> impl Piece {
     }
     // The proxy every quote fetch is routed through. Edited as a template rather than a
     // host, because the two proxy families take the target differently: a placeholder in a
-    // query parameter, or a prefix the target is appended to (quotes::proxied).
+    // query parameter, or a prefix the target is appended to (quotes::proxied). The app ships
+    // no proxy, so this is empty until someone fills it in — and while it is, the web build
+    // reads the bundled snapshots.
     let proxy = quotes::proxy();
     let entry = Signal::new(proxy.get_untracked());
+    // Two-way bound, persisted by an effect, exactly like the detail page's overlay toggle.
+    let demo = quotes::demo();
+    Effect::new(move || quotes::persist_demo(demo.get()));
     parts.push(AnyPiece::new(
         section((
             labeled(
                 res::str::settings_proxy_label(),
                 text_field(entry)
-                    .placeholder(quotes::DEFAULT_WEB_PROXY.to_string())
+                    // An EXAMPLE, not a default: nothing is sent anywhere until the field holds
+                    // a template the user chose.
+                    .placeholder("https://relay.example/raw?url=%u".to_string())
                     .id("proxy-field"),
             ),
             label(res::str::settings_proxy_hint()).font(Font::Footnote),
@@ -79,12 +86,6 @@ pub fn settings_page() -> impl Piece {
                     })
                     .prominent()
                     .id("proxy-apply"),
-                // Fills the field rather than applying, so the template is visible and editable
-                // before it takes effect — the relay's url is long enough that nobody should
-                // have to type it on a phone.
-                button(res::str::settings_proxy_relay())
-                    .action(move || entry.set(quotes::DAYBRITE_WEB_PROXY.to_string()))
-                    .id("proxy-relay"),
                 button(res::str::settings_proxy_direct())
                     .action(move || {
                         entry.set(String::new());
@@ -94,6 +95,13 @@ pub fn settings_page() -> impl Piece {
                     .id("proxy-direct"),
             ))
             .spacing(8.0),
+            // The bundled snapshots, on demand and on any platform. The web build turns them on
+            // by itself while the field above is empty; this makes them a choice everywhere.
+            labeled(
+                res::str::settings_demo_label(),
+                toggle(demo).id("demo-toggle"),
+            ),
+            label(res::str::settings_demo_hint()).font(Font::Footnote),
         ))
         .title(res::str::settings_proxy_section()),
     ));
@@ -109,7 +117,7 @@ pub fn settings_page() -> impl Piece {
     ));
 
     scroll(
-        column((form(PieceVec(parts)),))
+        column((super::demo_notice(), form(PieceVec(parts))))
             .spacing(12.0)
             .align(HAlign::Leading)
             .padding(16.0),

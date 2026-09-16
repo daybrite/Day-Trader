@@ -108,6 +108,17 @@ day launch -p macos-appkit --env TRADER_MOCK=1 --script dayscript/walkthrough.ya
 That [dayscript](https://daybrite.dev/docs/dayscript) walks the whole app, and it is the script CI
 runs on every target and locale to produce the gallery.
 
+`TRADER_DEMO=1` reads the snapshots bundled under `resource/assets/demo/` instead, which is what
+the browser build shows while no proxy is set:
+
+```sh
+day launch -p macos-appkit --env TRADER_DEMO=1 --script dayscript/demo-data.yaml
+```
+
+Those files are real `v8/chart` responses trimmed to the fields the app reads, so the charts carry
+a year of market history with no request at all. That second dayscript is the check that each
+target finds them in its own bundle.
+
 To build against a local `day` checkout instead of the pinned git revision, let the CLI write and
 verify the patch table:
 

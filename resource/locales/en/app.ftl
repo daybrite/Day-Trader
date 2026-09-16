@@ -12,6 +12,7 @@ nav_settings = Settings
 watchlist_title = Watchlist
 data_mock = Mock data · deterministic fixtures
 data_live = Live data
+data_demo = Cached demo data
 data_attribution = Data by Yahoo Finance — free end-of-day quotes.
 
 detail_loading = Loading quotes…
@@ -88,10 +89,13 @@ menu_symbols = Symbols
 # Network proxy for quote fetches (docs: quotes.rs `proxied`)
 settings_proxy_section = Network
 settings_proxy_label = Proxy
-settings_proxy_hint = Quote requests go through this. Use %u where the whole Yahoo URL should be inserted, or %p where only its path should go; a template with neither is treated as a prefix. Leave empty to fetch directly — the web build needs a proxy because browsers block cross-site requests to Yahoo.
+settings_proxy_hint = Quote requests go through this. Use %u where the whole Yahoo URL should be inserted, or %p where only its path should go; a template with neither is treated as a prefix. Leave it empty to fetch Yahoo directly — a browser blocks that as a cross-site request, so the web build then shows the bundled demo data.
 settings_proxy_apply = Apply
-settings_proxy_relay = Use Daybrite relay
 settings_proxy_direct = Fetch directly
+settings_demo_label = Use cached demo data
+settings_demo_hint = Reads the example quotes bundled with the app instead of fetching. The web build uses them on its own while no proxy is set.
+demo_notice_no_proxy = Displaying cached demo data due to unset web request proxy.
+demo_notice_chosen = Displaying cached demo data, chosen in Settings.
 
 # The analysis panel under the detail chart, and the watchlist's performance card
 analysis_label = Analysis

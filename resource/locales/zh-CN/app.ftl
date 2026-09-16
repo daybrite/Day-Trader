@@ -10,6 +10,7 @@ nav_settings = 设置
 watchlist_title = 自选列表
 data_mock = 模拟数据 · 确定性样本
 data_live = 实时数据
+data_demo = 缓存的演示数据
 data_attribution = 数据来自 Yahoo Finance — 免费收盘行情。
 
 detail_loading = 正在加载行情…
@@ -86,10 +87,13 @@ menu_symbols = 代码
 # 行情请求的网络代理
 settings_proxy_section = 网络
 settings_proxy_label = 代理
-settings_proxy_hint = 行情请求经由此处发出。用 %u 标记插入完整 Yahoo 链接的位置，或用 %p 只插入其路径；两者都不含的模板将作为前缀使用。留空则直接请求——网页版需要代理，因为浏览器会拦截对 Yahoo 的跨站请求。
+settings_proxy_hint = 行情请求经由此处发出。用 %u 标记插入完整 Yahoo 链接的位置，或用 %p 只插入其路径；两者都不含的模板将作为前缀使用。留空则直接请求 Yahoo——浏览器会将其视为跨站请求而拦截，网页版随即显示附带的演示数据。
 settings_proxy_apply = 应用
-settings_proxy_relay = 使用 Daybrite 中继
 settings_proxy_direct = 直接请求
+settings_demo_label = 使用缓存的演示数据
+settings_demo_hint = 读取随应用附带的示例行情，而不发起请求。未设置代理时，网页版会自行使用这些数据。
+demo_notice_no_proxy = 正在显示缓存的演示数据：未设置网络请求代理。
+demo_notice_chosen = 正在显示缓存的演示数据（已在设置中选择）。
 
 # 详情图表下方的分析面板，以及自选列表的表现卡片
 analysis_label = 分析

@@ -307,15 +307,14 @@ pub fn watchlist_page() -> impl Piece {
                 .font(Font::Title)
                 .bold()
                 .id("watchlist-title"),
-            label(move || {
-                if quotes::is_mock() {
-                    res::str::data_mock().format()
-                } else {
-                    res::str::data_live().format()
-                }
+            label(move || match quotes::source() {
+                quotes::DataSource::Mock => res::str::data_mock().format(),
+                quotes::DataSource::Demo => res::str::data_demo().format(),
+                quotes::DataSource::Live => res::str::data_live().format(),
             })
             .font(Font::Caption)
             .id("data-source"),
+            super::demo_notice(),
             // Empty watchlist: say so and point at the page that fixes it, rather than
             // rendering a bare heading over nothing.
             when(
