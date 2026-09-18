@@ -54,6 +54,10 @@ jobs:
       launch-env: TRADER_DEMO=1
       # Keeps this call's packages from colliding with the job above's `dist-<target>`.
       artifact-prefix: demo-
+      # The job above deploys the site; a second deploy in the same run uploads a second Pages
+      # artifact, and whichever deploys last fails on the duplicate after the other published a
+      # site built from this call's artifacts.
+      deploy-website: "false"
       # Both already ran in the job above, on the same commit.
       lint: false
       preflight-checks: ""
