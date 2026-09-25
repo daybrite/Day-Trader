@@ -239,10 +239,10 @@ fn symbols_stack() -> impl Piece {
         // Adding acts on the list this stack's root shows, so it rides the root page's chrome
         // (docs/toolbars.md) and is gone from the symbol pages pushed over it.
         .toolbar(
-            toolbar_button("tb-add-symbol", res::str::menu_add_symbol())
-                .image(res::vectors::add_symbol.clone())
-                .placement(ToolbarPlacement::Primary)
-                .action(pages::prompt_for_symbol),
+            pages::add_symbol_command()
+                .toolbar_item()
+                .id("tb-add-symbol")
+                .placement(ToolbarPlacement::Primary),
         )
         .destination(|key: &String| symbol_page(key))
         .id("symbols-stack")

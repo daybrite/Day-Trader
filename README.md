@@ -66,7 +66,7 @@ publishes the results to the [gallery](https://daybrite.dev/gallery/Day-Trader/)
 
 | Linux · Qt | Web · DOM | HarmonyOS · ArkUI |
 |:---:|:---:|:---:|
-| <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/linux-qt/en/detail.png" width="300" alt="Detail on Qt"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/web-dom/en/detail.png" width="300" alt="Detail in the browser"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/harmony-arkui/en/detail.png" width="150" alt="Detail on HarmonyOS"></kbd> |
+| <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/linux-qt/en/detail.png" width="300" alt="Detail on Qt"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/web-dom/en/detail.png" width="300" alt="Detail in the browser"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/harmony-arkui/phone/en/detail.png" width="150" alt="Detail on HarmonyOS"></kbd> |
 
 The sorted list, the absolute-change chips, and the Arabic layout:
 

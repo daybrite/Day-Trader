@@ -178,12 +178,11 @@ pub fn prompt_for_symbol() {
 pub fn install_app_menu() {
     app_menu_reactive(|| {
         let symbols = res::str::menu_symbols().format();
-        let add = res::str::menu_add_symbol().format();
         let remove = res::str::menu_remove_symbol().format();
         vec![sub_menu(
             symbols,
             vec![
-                menu_item(add).key("n").action(prompt_for_symbol),
+                add_symbol_command().menu_item(),
                 menu_item(remove).action(|| {
                     // The selected symbol IS the current route on the sidebar shell; a route
                     // that is not a tracked symbol (the watchlist, settings) removes nothing.
@@ -197,4 +196,16 @@ pub fn install_app_menu() {
             ],
         )]
     });
+}
+
+/// Shared by the Symbols menu and the sidebar toolbar.
+pub fn add_symbol_command() -> CommandHandle {
+    Command {
+        id: "add-symbol",
+        label: res::str::menu_add_symbol(),
+        action: prompt_for_symbol,
+    }
+    .build()
+    .image(res::vectors::add_symbol.clone())
+    .shortcut(Shortcut::new("n"))
 }
