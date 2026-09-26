@@ -55,4 +55,4 @@ day-build = { git = "https://github.com/daybrite/day.git" }
 [workspace]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
