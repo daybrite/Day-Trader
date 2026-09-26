@@ -26,7 +26,11 @@ jobs:
       # Preferences window, which the mobile targets in this matrix have no equivalent of.
       scripts: dayscript/walkthrough.yaml
       launch-env: TRADER_MOCK=1
-      locales: en fr ar zh-CN
+      #locales: en fr ar zh-CN
+
+      # publish as pre-release
+      release-mode: pre-release
+
       # Publish the web build to GitHub Pages on every push to main (empty tag-pattern → the
       # default-branch mode). Native release assets still attach on vX.Y.Z tags, independently.
       deploy-web: true
