@@ -98,18 +98,36 @@ fn price_domain(closes: &[f64]) -> (f64, f64) {
     (min - pad, max + pad)
 }
 
-/// Two decimals, the precision every price on the page shows.
+/// Two decimals, the precision every price on the page shows, in the locale's own separators.
 fn price_label(d: &Datum) -> String {
     d.as_continuous()
-        .map(|v| format!("{v:.2}"))
+        .map(|v| day::format_decimal(v, 2))
         .unwrap_or_default()
 }
 
-/// A whole-number percentage with its sign.
+/// A whole-number percentage (the value is already in percent), with the sign where the locale
+/// puts it: `-12%`, `-12 %` in French.
 fn percent_label(d: &Datum) -> String {
     d.as_continuous()
-        .map(|v| format!("{v:.0}%"))
+        .map(|v| day::format_percent(v / 100.0, 0))
         .unwrap_or_default()
+}
+
+/// `text` (the locale's rendering of `v`) with a plus sign when `v` is a gain, the way a move is
+/// written; a loss already carries the locale's minus.
+fn signed(v: f64, text: String) -> String {
+    if v > 0.0 { format!("+{text}") } else { text }
+}
+
+/// The twelve months' short names in the current locale, in calendar order (a tracked read, so a
+/// chart reading them relabels itself when the locale switches).
+fn month_names() -> Vec<String> {
+    (1..=12)
+        .map(|m| {
+            let mid = ch::parse_iso_date(&format!("2026-{m:02}-15")).unwrap_or_default();
+            day::format_date(mid, day::DateFields::Month)
+        })
+        .collect()
 }
 
 /// The big price chart: a gradient area under the price line in the trend color, a dashed
@@ -354,9 +372,9 @@ pub fn returns_histogram(quote: Signal<Load<Quote>>, axis_label: String) -> impl
             .map(|v| {
                 // Zero is an edge, not a move; it takes no sign.
                 if v.abs() < 1e-9 {
-                    "0%".to_string()
+                    day::format_percent(0.0, 0)
                 } else {
-                    format!("{v:+.1}%")
+                    signed(v, day::format_percent(v / 100.0, 1))
                 }
             })
             .unwrap_or_default()
@@ -377,6 +395,7 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
         };
         let dark = day::dark_mode();
         let months = quotes::monthly_returns(&q.closes, &q.dates);
+        let names = month_names();
         // The ramp's reach: the biggest move either way, and never so small that a quiet year
         // is painted in the deepest colors.
         let reach = months
@@ -396,20 +415,25 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
                     Color::rgba(0.0, 0.0, 0.0, 0.75)
                 };
                 ch::rect(
-                    value("Month", quotes::MONTH_NAMES[(*month as usize - 1).min(11)]),
+                    value("Month", names[(*month as usize - 1).min(11)].clone()),
                     value("Year", year.to_string()),
                 )
                 .foreground(ch::diverging(t))
                 .width(ch::Dimension::Inset(1.0))
                 .height(ch::Dimension::Inset(1.0))
                 .corner_radius(3.0)
-                .annotation(AnnotationPosition::Overlay, format!("{r:+.1}"))
+                .annotation(
+                    AnnotationPosition::Overlay,
+                    signed(*r, day::format_decimal(*r, 1)),
+                )
                 .annotation_color(ink)
             })
             .collect()
     })
     .animate_appearance()
-    .x_categories(quotes::MONTH_NAMES)
+    // The columns in calendar order, named in the locale; read inside the chart's binding so a
+    // locale switch renames them along with the cells.
+    .configure(|c| c.x_scale.categories = Some(month_names()))
     .no_grid()
     .label_size(10.0)
     .height(140.0)
@@ -508,7 +532,7 @@ pub fn performance_chart(list: Signal<Vec<String>>) -> impl Piece {
     .y_axis_trailing()
     .y_format(|d| {
         d.as_continuous()
-            .map(|v| format!("{v:.0}"))
+            .map(|v| day::format_decimal(v, 0))
             .unwrap_or_default()
     })
     .x_tick_count(4)
@@ -654,8 +678,11 @@ pub fn volume_profile(
                 // The heaviest band in full strength, the rest faded by share, so the level the
                 // symbol traded at most reads first.
                 let share = if peak > 0.0 { v / peak } else { 0.0 };
-                ch::bar(value("Volume", *v), value("Price", format!("{mid:.0}")))
-                    .foreground(faded(SMA50_COLOR, 0.25 + 0.6 * share))
+                ch::bar(
+                    value("Volume", *v),
+                    value("Price", day::format_decimal(mid, 0)),
+                )
+                .foreground(faded(SMA50_COLOR, 0.25 + 0.6 * share))
             })
             .collect()
     })

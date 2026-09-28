@@ -223,13 +223,6 @@ pub fn tail(v: &[f64], n: usize) -> &[f64] {
     &v[v.len().saturating_sub(n)..]
 }
 
-/// Short month names, in calendar order: the columns of the monthly heat map and the labels
-/// every chart's time axis already uses. Proper nouns by convention on a finance chart, so not
-/// localized.
-pub const MONTH_NAMES: [&str; 12] = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
 /// How far each close sits below the running peak, in percent (zero at a new high, negative
 /// everywhere else), index-aligned with `closes`.
 pub fn drawdown_series(closes: &[f64]) -> Vec<f64> {
