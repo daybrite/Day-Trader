@@ -200,6 +200,10 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
         );
         marks
     })
+    // Arrives in motion, and every later change (the range picker, the overlay switch, a fresh
+    // quote) is drawn as the line moving from the old window to the new one: dates added at the
+    // start grow out of the first close while the axis rescales under them.
+    .animate_appearance()
     // The domain is a property of the chart, not of a mark, and it has to follow the range
     // picker like the marks do: the closure is re-read inside the chart's own binding.
     .y_domain_with(move || windowed_price_domain(quote))
@@ -265,6 +269,7 @@ pub fn volume_strip(quote: Signal<Load<Quote>>) -> impl Piece {
             })
             .collect()
     })
+    .animated()
     .x_domain_with(move || windowed_date_domain(quote))
     .bare()
     .plot_insets(STRIP_INSETS)
@@ -302,6 +307,7 @@ pub fn drawdown_chart(quote: Signal<Load<Quote>>) -> impl Piece {
         }
         marks
     })
+    .animate_appearance()
     .y_axis_trailing()
     .y_format(percent_label)
     .x_tick_count(4)
@@ -342,6 +348,7 @@ pub fn returns_histogram(quote: Signal<Load<Quote>>, axis_label: String) -> impl
         );
         marks
     })
+    .animate_appearance()
     .x_format(|d| {
         d.as_continuous()
             .map(|v| {
@@ -401,6 +408,7 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
             })
             .collect()
     })
+    .animate_appearance()
     .x_categories(quotes::MONTH_NAMES)
     .no_grid()
     .label_size(10.0)
@@ -496,6 +504,7 @@ pub fn performance_chart(list: Signal<Vec<String>>) -> impl Piece {
         }
         marks
     })
+    .animated()
     .y_axis_trailing()
     .y_format(|d| {
         d.as_continuous()
@@ -550,6 +559,7 @@ pub fn risk_return_scatter(
         }
         marks
     })
+    .animated()
     .x_format(percent_label)
     .y_format(percent_label)
     .y_axis_trailing()
@@ -599,6 +609,7 @@ pub fn correlation_matrix(
         }
         marks
     })
+    .animated()
     .legend(LegendPosition::Hidden)
     .select(sel)
     .snap(ch::select::Snap::NearestMark)
@@ -648,6 +659,7 @@ pub fn volume_profile(
             })
             .collect()
     })
+    .animate_appearance()
     .x_tick_count(3)
     .legend(LegendPosition::Hidden)
     .select(sel)
@@ -675,6 +687,7 @@ pub fn breadth_donut(list: Signal<Vec<String>>) -> impl Piece {
                 .angular_inset(1.5),
         ]
     })
+    .animated()
     .coordinate(Coordinate::donut(0.6))
     .bare()
     .frame(44.0, 44.0)
@@ -723,6 +736,7 @@ pub fn range_bar(
                 .symbol_size(38.5),
         ]
     })
+    .animated()
     .bare()
     .plot_insets(Insets {
         top: 0.0,

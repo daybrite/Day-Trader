@@ -44,10 +44,12 @@ flow:
   - assert_text: { id: detail-price, text: "443.83" }
   - assert_text: { id: detail-name, text: "SPDR Dow Jones Industrial Average ETF" }
   - assert_visible: { id: overlay-legend }
+  - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: m-detail
   - select: { id: analysis-picker, index: 2 }
   - assert_visible: { id: analysis-monthly }
   - scroll_to: { id: analysis-monthly }
+  - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: m-detail-monthly
   - select: { id: analysis-picker, index: 0 }
   # Back returns to this tab's own root.
