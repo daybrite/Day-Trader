@@ -11,20 +11,22 @@ on:
   schedule:
     - cron: "30 15 * * *" # daily (UTC)
 
+# The repository's own jobs run this checkout's code with a read-only token. The write grants
+# sit on the job that calls the shared workflow, whose release and Pages jobs alone use them;
+# its build legs, which run this code too, narrow their token to read-only themselves.
 permissions:
-  contents: write # release-asset upload on tag builds
-  pages: write    # web-dom → GitHub Pages (deploy-web)
-  id-token: write # deploy-pages OIDC token (deploy-web)
+  contents: read
 
 jobs:
   app:
-    uses: daybrite/actions/.github/workflows/dayapp.yml@main
+    uses: daybrite/actions/.github/workflows/dayapp.yml@v1
+    permissions:
+      contents: write # release-asset upload on tag builds
+      pages: write    # web-dom → GitHub Pages (deploy-web)
+      id-token: write # deploy-pages OIDC token (deploy-web)
     secrets: inherit
     with:
       targets: windows-xaml, macos-appkit, linux-gtk, linux-qt, ios-uikit, android-mdc, harmony-arkui, web-dom
-      # main until the next day release: the flatpak/MSIX default-icon fallback (needed by apps
-      # without resource/icons/, like this one) is newer than the latest published CLI.
-      day-version: main
       # Named rather than "auto": the other dayscript, prefs-window.yaml, drives the desktop
       # Preferences window, which the mobile targets in this matrix have no equivalent of.
       scripts: dayscript/walkthrough.yaml
@@ -52,11 +54,10 @@ jobs:
   # land on the release beside the ones the job above built.
   demo-data:
     if: github.ref_type != 'tag'
-    uses: daybrite/actions/.github/workflows/dayapp.yml@main
+    uses: daybrite/actions/.github/workflows/dayapp.yml@v1
     with:
       # The two packaging paths that differ. Add android-mdc or ios-uikit here to cover theirs.
       targets: macos-appkit, web-dom
-      day-version: main
       scripts: dayscript/demo-data.yaml
       launch-env: TRADER_DEMO=1
       # Keeps this call's packages from colliding with the job above's `dist-<target>`.
