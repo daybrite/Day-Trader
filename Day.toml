@@ -9,7 +9,7 @@ schema = 1
 id = "dev.daybrite.daytrader"
 title = "Day Trader"
 build = 8
-targets = ["windows-xaml", "macos-appkit", "linux-gtk", "linux-qt", "ios-uikit", "android-mdc", "harmony-arkui", "web-dom"]
+targets = ["windows-winui", "windows-xaml", "macos-appkit", "linux-gtk", "linux-qt", "ios-uikit", "android-mdc", "harmony-arkui", "web-dom"]
 
 [window]
 width = 960
