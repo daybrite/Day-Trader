@@ -232,9 +232,11 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     // A price chart snaps along x: a scrub reads every series at one date (the close and any
     // overlay together), which is the reason to scrub a time series at all. Hover on a
     // desktop, tap or drag on a phone; the chart wires all three.
-    .select(sel)
-    .snap(ch::select::Snap::NearestX)
-    .guides(ch::select::Guides::RULE)
+    .interact(
+        day_piece_charts::Inspect::new(sel)
+            .snap(ch::Snap::NearestX)
+            .guides(ch::Guides::RULE),
+    )
     .plot_insets(STACKED_INSETS)
     // After every Chart builder (`Decorated` does not forward them) and before `.height`/`.grow_w`
     // (an id after a wrapper tags the wrapper, and a dayscript tap would miss the canvas).
@@ -549,7 +551,7 @@ pub fn performance_chart(list: Signal<Vec<String>>) -> impl Piece {
 /// phone, tapping) names the symbol under the pointer and its two figures.
 pub fn risk_return_scatter(
     list: Signal<Vec<String>>,
-    sel: Signal<Option<ch::select::Selection>>,
+    sel: Signal<Option<ch::Selection>>,
 ) -> impl Piece {
     chart(move || {
         let days = window_days();
@@ -589,9 +591,11 @@ pub fn risk_return_scatter(
     .y_axis_trailing()
     .x_tick_count(5)
     .legend(LegendPosition::Bottom)
-    .select(sel)
-    .snap(ch::select::Snap::NearestMark)
-    .guides(ch::select::Guides::CROSSHAIR)
+    .interact(
+        day_piece_charts::Inspect::new(sel)
+            .snap(ch::Snap::NearestMark)
+            .guides(ch::Guides::CROSSHAIR),
+    )
     .height(260.0)
     .grow_w()
 }
@@ -603,7 +607,7 @@ pub fn risk_return_scatter(
 /// being able to say whether that is 0.3 or 0.6, and the label under the pointer says which.
 pub fn correlation_matrix(
     list: Signal<Vec<String>>,
-    sel: Signal<Option<ch::select::Selection>>,
+    sel: Signal<Option<ch::Selection>>,
 ) -> impl Piece {
     chart(move || {
         let days = window_days();
@@ -635,9 +639,11 @@ pub fn correlation_matrix(
     })
     .animated()
     .legend(LegendPosition::Hidden)
-    .select(sel)
-    .snap(ch::select::Snap::NearestMark)
-    .guides(ch::select::Guides::CROSSHAIR)
+    .interact(
+        day_piece_charts::Inspect::new(sel)
+            .snap(ch::Snap::NearestMark)
+            .guides(ch::Guides::CROSSHAIR),
+    )
     .height(260.0)
     .grow_w()
 }
@@ -658,7 +664,7 @@ fn correlation_color(c: f64) -> Color {
 /// with its channels the other way round.
 pub fn volume_profile(
     quote: Signal<Load<Quote>>,
-    sel: Signal<Option<ch::select::Selection>>,
+    sel: Signal<Option<ch::Selection>>,
 ) -> impl Piece {
     chart(move || {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
@@ -689,9 +695,11 @@ pub fn volume_profile(
     .animate_appearance()
     .x_tick_count(3)
     .legend(LegendPosition::Hidden)
-    .select(sel)
-    .snap(ch::select::Snap::NearestMark)
-    .guides(ch::select::Guides::RULE)
+    .interact(
+        day_piece_charts::Inspect::new(sel)
+            .snap(ch::Snap::NearestMark)
+            .guides(ch::Guides::RULE),
+    )
     .height(220.0)
     .grow_w()
 }

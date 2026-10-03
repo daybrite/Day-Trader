@@ -190,7 +190,7 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
     // readouts below say in words what the guides say in pixels.
     let risk_sel = Signal::new(None);
     let corr_sel = Signal::new(None);
-    let readout = |sel: Signal<Option<day_piece_charts::select::Selection>>,
+    let readout = |sel: Signal<Option<day_piece_charts::Selection>>,
                    none: fn() -> day::LocalizedText| {
         label(move || match sel.get() {
             Some(s) => {
