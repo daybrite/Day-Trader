@@ -51,7 +51,7 @@ const PREF_DEMO: &str = "trader.demo";
 /// quotes app should not take), so the web build with no proxy configured reads the bundled
 /// snapshots and says so on every page.
 ///
-/// `day build -p web-dom` copies `resource/assets/` into the dist as `assets/data/`, so this is a
+/// `day build -t web-dom` copies `resource/assets/` into the dist as `assets/data/`, so this is a
 /// same-origin path resolved against the page; it needs no proxy and CORS does not apply.
 #[cfg(target_arch = "wasm32")]
 const DEMO_DIR_WEB: &str = "assets/data/demo";
@@ -895,7 +895,7 @@ fn env_flag(name: &str) -> bool {
 
 async fn load(symbol: String) -> Result<Quote, QuoteError> {
     match source_now() {
-        DataSource::Mock => Ok(mock(&symbol)),
+        DataSource::Mock => fetch_mock(&symbol).await,
         DataSource::Demo => demo_quote(&symbol).await,
         DataSource::Live => fetch(symbol).await,
     }
@@ -986,6 +986,64 @@ impl Lcg {
         let span = max_cents * 2 + 1;
         (self.next() % span) as f64 / 100.0 - (max_cents as f64 / 100.0)
     }
+}
+
+/// The CI source exercises the same request/JSON parsing path as live quotes. Only the
+/// transport is replaced; each session is isolated from the app's other HTTP consumers.
+fn mock_client() -> &'static day_part_http::Client {
+    static CLIENT: std::sync::OnceLock<day_part_http::Client> = std::sync::OnceLock::new();
+    CLIENT.get_or_init(|| {
+        let simulation = day_part_http::simulation::Simulation::new();
+        simulation.handle(
+            |method, url| method == "GET" && url.starts_with(CHART_URL),
+            |request| {
+                let encoded = request
+                    .url
+                    .strip_prefix(CHART_URL)
+                    .unwrap_or_default()
+                    .split('?')
+                    .next()
+                    .unwrap_or_default();
+                let symbol = encoded
+                    .replace("%3D", "=")
+                    .replace("%5E", "^")
+                    .replace("%2F", "/");
+                Ok(
+                    day_part_http::simulation::Reply::new(200, mock_response(&symbol))
+                        .header("Content-Type", "application/json"),
+                )
+            },
+        );
+        let session = day_part_http::Session::new();
+        session.set_simulation(Some(simulation));
+        day_part_http::Client::builder().session(session).build()
+    })
+}
+
+fn mock_response(symbol: &str) -> Vec<u8> {
+    let q = mock(symbol);
+    let timestamps: Vec<i64> = (0..q.dates.len())
+        .map(|i| {
+            (day_piece_charts::ticks::civil::to_days(2026, 7, 1) - (q.dates.len() - 1 - i) as i64)
+                * 86400
+        })
+        .collect();
+    let mut opens = q.closes.clone();
+    if let Some(last) = opens.last_mut() {
+        *last = q.open;
+    }
+    serde_json::to_vec(&serde_json::json!({"chart":{"error":null,"result":[{
+        "meta":{"shortName":q.name,"regularMarketPrice":q.last,"regularMarketDayHigh":q.high,"regularMarketDayLow":q.low,"regularMarketVolume":q.volume},
+        "timestamp":timestamps,"indicators":{"quote":[{"open":opens,"high":q.closes,"low":q.closes,"close":q.closes,"volume":q.volumes}]}
+    }]}})).expect("synthetic quote JSON")
+}
+
+async fn fetch_mock(symbol: &str) -> Result<Quote, QuoteError> {
+    let url = format!("{CHART_URL}{}?range=2y&interval=1d", percent_encode(symbol));
+    let body = get_text_with_client(mock_client(), &url, 15).await?;
+    let mut quote = parse_chart(&body, symbol)?;
+    quote.mock = true;
+    Ok(quote)
 }
 
 /// Build a deterministic 500-day series for a symbol. Cent-quantized arithmetic throughout
@@ -1180,22 +1238,37 @@ async fn get_text_resilient(url: &str, proxied: bool) -> Result<String, QuoteErr
 }
 
 async fn get_text(url: &str, timeout_secs: u64) -> Result<String, QuoteError> {
-    let resp = day_part_http::fetch_future(
-        day_part_http::Request::get(url)
-            // Yahoo answers `429 Too Many Requests` to a request with no User-Agent, on the
-            // very first call. Identify the app by name rather than impersonating a browser.
-            .header(
-                "User-Agent",
-                concat!(
-                    "Day-Trader/",
-                    env!("CARGO_PKG_VERSION"),
-                    " (+https://daybrite.dev)"
-                ),
-            )
-            .timeout(std::time::Duration::from_secs(timeout_secs)),
+    static CLIENT: std::sync::OnceLock<day_part_http::Client> = std::sync::OnceLock::new();
+    get_text_with_client(
+        CLIENT.get_or_init(day_part_http::Client::new),
+        url,
+        timeout_secs,
     )
     .await
-    .map_err(|e| QuoteError(format!("request failed: {e}")))?;
+}
+
+async fn get_text_with_client(
+    client: &day_part_http::Client,
+    url: &str,
+    timeout_secs: u64,
+) -> Result<String, QuoteError> {
+    let resp = client
+        .fetch_future(
+            day_part_http::Request::get(url)
+                // Yahoo answers `429 Too Many Requests` to a request with no User-Agent, on the
+                // very first call. Identify the app by name rather than impersonating a browser.
+                .header(
+                    "User-Agent",
+                    concat!(
+                        "Day-Trader/",
+                        env!("CARGO_PKG_VERSION"),
+                        " (+https://daybrite.dev)"
+                    ),
+                )
+                .timeout(std::time::Duration::from_secs(timeout_secs)),
+        )
+        .await
+        .map_err(|e| QuoteError(format!("request failed: {e}")))?;
     if !(200..300).contains(&resp.status) {
         return Err(QuoteError(format!("request failed: HTTP {}", resp.status)));
     }
@@ -1519,5 +1592,59 @@ mod tests {
             assert_ne!(preset_name(s), s, "{s} has no display name");
             assert!(!percent_encode(s).is_empty());
         }
+    }
+}
+
+#[cfg(test)]
+mod interception_tests {
+    use super::*;
+    fn wait<T>(future: impl std::future::Future<Output = T>) -> T {
+        struct Wake(std::thread::Thread);
+        impl std::task::Wake for Wake {
+            fn wake(self: std::sync::Arc<Self>) {
+                self.0.unpark();
+            }
+        }
+        let waker = std::task::Waker::from(std::sync::Arc::new(Wake(std::thread::current())));
+        let mut cx = std::task::Context::from_waker(&waker);
+        let mut f = std::pin::pin!(future);
+        loop {
+            match f.as_mut().poll(&mut cx) {
+                std::task::Poll::Ready(v) => return v,
+                std::task::Poll::Pending => {
+                    std::thread::park_timeout(std::time::Duration::from_secs(5))
+                }
+            }
+        }
+    }
+    #[test]
+    fn intercepted_quotes_use_live_parser_and_preserve_walkthrough_prices() {
+        for symbol in ["SPY", "AAPL", "GC=F"] {
+            let got = wait(fetch_mock(symbol)).unwrap();
+            let expected = mock(symbol);
+            assert_eq!(got.closes, expected.closes);
+            assert_eq!(got.dates, expected.dates);
+            assert_eq!(got.open, expected.open);
+            assert_eq!(got.last, expected.last);
+            assert_eq!(got.volumes, expected.volumes);
+            assert!(got.mock);
+        }
+    }
+    #[test]
+    fn intercepted_rate_limit_uses_normal_http_error_path() {
+        let simulation = day_part_http::simulation::Simulation::new();
+        simulation.handle(
+            |_, _| true,
+            |_| Ok(day_part_http::simulation::Reply::new(429, Vec::new())),
+        );
+        let session = day_part_http::Session::new();
+        session.set_simulation(Some(simulation));
+        let client = day_part_http::Client::builder().session(session).build();
+        assert!(
+            wait(get_text_with_client(&client, "https://fixture.example/", 2))
+                .unwrap_err()
+                .0
+                .contains("HTTP 429")
+        );
     }
 }

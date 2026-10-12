@@ -1,6 +1,6 @@
 # Day Trader walkthrough, phone shell (https://daybrite.dev/docs/dayscript).
 #
-#     day launch -p ios-uikit --env TRADER_MOCK=1 --script dayscript/walkthrough-mobile.yaml
+#     day launch -t ios-uikit --env TRADER_MOCK=1 --script dayscript/walkthrough-mobile.yaml
 #
 # A second script, because the app builds one of two shells from `day::size_class()`
 # (src/lib.rs), and the two do not share a route namespace. The sidebar owns a symbol at the top

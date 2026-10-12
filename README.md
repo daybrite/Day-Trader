@@ -84,11 +84,11 @@ target the app ships is listed in `Day.toml`.
 
 ```sh
 day doctor                       # toolchains present and missing, with fixes
-day launch -p macos-appkit       # build + run
-day launch -p windows-xaml       # on a Windows host
-day launch -p ios-uikit          # needs a booted Simulator
-day launch -p android-mdc        # needs a JDK and a running emulator or device
-day launch -p web-dom            # serves the WebAssembly build locally
+day launch -t macos-appkit       # build + run
+day launch -t windows-xaml       # on a Windows host
+day launch -t ios-uikit          # needs a booted Simulator
+day launch -t android-mdc        # needs a JDK and a running emulator or device
+day launch -t web-dom            # serves the WebAssembly build locally
 ```
 
 A bare `cargo build` uses the crate's default `mock` backend, which is what lets rust-analyzer and
@@ -102,7 +102,7 @@ Set `TRADER_MOCK=1` to replace the Yahoo Finance fetch with a deterministic gene
 screenshots and assertions come out the same every run:
 
 ```sh
-day launch -p macos-appkit --env TRADER_MOCK=1 --script dayscript/walkthrough.yaml
+day launch -t macos-appkit --env TRADER_MOCK=1 --script dayscript/walkthrough.yaml
 ```
 
 That [dayscript](https://daybrite.dev/docs/dayscript) walks the whole app, and it is the script CI
@@ -112,7 +112,7 @@ runs on every target and locale to produce the gallery.
 the browser build shows while no proxy is set:
 
 ```sh
-day launch -p macos-appkit --env TRADER_DEMO=1 --script dayscript/demo-data.yaml
+day launch -t macos-appkit --env TRADER_DEMO=1 --script dayscript/demo-data.yaml
 ```
 
 Those files are real `v8/chart` responses trimmed to the fields the app reads, so the charts carry
@@ -138,8 +138,27 @@ day patch --local /path/to/day
   performance comparison, the breadth ring, and the range tracks.
 - `src/pages/watchlist.rs`, `detail.rs`, and `manage.rs` are the three screens.
 - `resource/locales/` carries the Fluent strings for `en`, `fr`, `ar`, and `zh-CN`.
-- `platform/` holds the thin native host projects the mobile targets build through.
+- `platform/` holds app-owned Apple host sources and any native resource customizations. Day generates the build projects under `build/`.
 
 `day lint` checks routes, element ids, and locale coverage.
 
 Data by Yahoo Finance. Day Trader is open source under the Apache-2.0 license.
+
+### Deterministic HTTP tests
+
+`TRADER_MOCK=1` still selects the stable prices used by the CI walkthrough, but now sends the
+ordinary quote request through an isolated `day-part-http` interception session. A synthetic
+Yahoo-shaped JSON response passes through the same HTTP status handling and quote parser as
+live data. Unit tests verify price/date parity and the HTTP 429 error path. `TRADER_DEMO=1`
+remains a separate bundled-resource packaging test; it does not contact a market-data service.
+
+
+## Generated native projects
+
+Use a Day CLI with automatic native project generation; Apple builds require **Xcode 27
+or newer**. Xcode project documents, Android Gradle files, and HarmonyOS hvigor files are
+created under `build/` by `day prepare`, `day build`, and `day launch`. Open the selected
+project with `day open -t <target>`; edits to generated files are disposable. Apple Swift
+sources, plists and `.xcconfig` files, and any Android resource overlays, remain app-owned
+under `platform/`. For additional native configuration, use
+`day project add-target <target> --persist-native-project` to create a persistent override.

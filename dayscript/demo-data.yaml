@@ -3,7 +3,7 @@
 # Run with the demo switch on and the mock off, so every quote below comes out of the app's own
 # bundle instead of the network:
 #
-#     day launch -p macos-appkit --env TRADER_DEMO=1 --script dayscript/demo-data.yaml
+#     day launch -t macos-appkit --env TRADER_DEMO=1 --script dayscript/demo-data.yaml
 #
 # What this covers that a unit test cannot: `every_preset_has_bundled_demo_data` parses the
 # committed files from the source tree, while this reads them through the packaged bundle:
