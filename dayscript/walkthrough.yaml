@@ -173,13 +173,31 @@ flow:
   - tap: { id: preset-add }
   - assert_text: { id: sym-status, key: manage_status_exists }
 
-  # Settings: About, language picker; the theme picker is not asserted, because backends without
-  # Cap::Appearance hide that section.
+  # Settings: the shared surface (https://daybrite.dev/docs/settings) as the app's own section
+  # on every platform; its root lists About and the groups, and a row pushes a group's page.
+  # The General group carries the language picker on every backend (the theme picker is not
+  # asserted, because backends without Cap::Appearance hide it); the Data group the proxy,
+  # the demo switch and the refresh action.
   - navigate: { route: settings }
+  - wait_for: { id: settings-root }
+  - tap: { id: prefs-group-general }
   - wait_for: { id: language-picker }
-  # The version row is present, but its value is not pinned: the label reads CARGO_PKG_VERSION,
-  # so a literal here would fail on every release bump.
-  - assert_visible: { id: about-version }
-  - assert_visible: { id: about-source }
-  - assert_visible: { id: refresh-all }
   - screenshot: settings
+  - nav_back:
+  - wait_for: { id: settings-root }
+  - tap: { id: prefs-group-data }
+  - wait_for: { id: refresh-all }
+  - assert_visible: { id: demo-toggle }
+  - assert_visible: { id: proxy-field }
+  - screenshot: settings-data
+  # About, from the root's header card: the version (not pinned; a literal would fail every
+  # release bump) and the two links, Website and the Yahoo Finance data source.
+  - nav_back:
+  - wait_for: { id: settings-root }
+  - tap: { id: settings-about }
+  - wait_for: { id: about-version }
+  - assert_visible: { id: about-link-0 }
+  - assert_visible: { id: about-link-1 }
+  - screenshot: about
+  - nav_back:
+  - wait_for: { id: settings-root }

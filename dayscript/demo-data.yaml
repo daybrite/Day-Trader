@@ -58,8 +58,9 @@ flow:
   - assert_missing: { id: detail-error }
   - nav_back:
   - navigate: { route: watchlist }
-  # The settings page carries the notice too. The demo-data toggle is not asserted here: it
-  # reflects the persisted setting, which `TRADER_DEMO=1` leaves alone.
+  # The demo switch lives in the Data group of the settings surface. Present, not asserted for
+  # a value: it reflects the persisted setting, which `TRADER_DEMO=1` leaves alone.
   - navigate: { route: settings }
-  - wait_for: { id: demo-notice }
-  - assert_text: { id: demo-notice, key: demo_notice_chosen }
+  - wait_for: { id: settings-root }
+  - tap: { id: prefs-group-data }
+  - wait_for: { id: demo-toggle }

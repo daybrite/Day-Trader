@@ -71,9 +71,11 @@ const STRIP_INSETS: Insets = Insets {
     trailing: 56.0,
 };
 
-/// The trading days the range picker currently shows.
-fn window_days() -> usize {
-    RANGES[quotes::range().get().min(RANGES.len() - 1)].1
+/// The trading days the range picker currently shows. `range` is the window's own signal
+/// (`quotes::range()`), resolved while the page builds: a chart redraws from a frame tick,
+/// where no window's `Scene` is ambient and the focused window may be the Settings panel.
+fn window_days(range: Signal<usize>) -> usize {
+    RANGES[range.get().min(RANGES.len() - 1)].1
 }
 
 /// The closes in view and the dates aligned with them, or nothing when there is too little to
@@ -138,11 +140,12 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     // What the pointer is over. Owned here rather than by the chart, so the readout under the
     // chart and the guides on it are two views of one thing (docs/charts.md "Selection").
     let sel = Signal::new(None);
+    let range = quotes::range();
     chart(move || {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
             return Vec::new();
         };
-        let Some((closes, dates)) = window(&q, window_days()) else {
+        let Some((closes, dates)) = window(&q, window_days(range)) else {
             return Vec::new();
         };
         let (lo, _) = price_domain(closes);
@@ -224,7 +227,7 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     .animate_appearance()
     // The domain is a property of the chart, not of a mark, and it has to follow the range
     // picker like the marks do: the closure is re-read inside the chart's own binding.
-    .y_domain_with(move || windowed_price_domain(quote))
+    .y_domain_with(move || windowed_price_domain(quote, range))
     .y_axis_trailing()
     .y_format(price_label)
     .x_tick_count(4)
@@ -246,18 +249,18 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
 }
 
 /// The padded extent of the closes in view, for a chart that pins its y axis to them.
-fn windowed_price_domain(quote: Signal<Load<Quote>>) -> Option<(f64, f64)> {
+fn windowed_price_domain(quote: Signal<Load<Quote>>, range: Signal<usize>) -> Option<(f64, f64)> {
     quote.with(|l| {
         l.ready()
-            .and_then(|q| window(q, window_days()).map(|(c, _)| price_domain(c)))
+            .and_then(|q| window(q, window_days(range)).map(|(c, _)| price_domain(c)))
     })
 }
 
 /// The first and last instants in view, for a strip that shares the price chart's time axis.
-fn windowed_date_domain(quote: Signal<Load<Quote>>) -> Option<(f64, f64)> {
+fn windowed_date_domain(quote: Signal<Load<Quote>>, range: Signal<usize>) -> Option<(f64, f64)> {
     quote.with(|l| {
         l.ready().and_then(|q| {
-            let (_, dates) = window(q, window_days())?;
+            let (_, dates) = window(q, window_days(range))?;
             Some((
                 ch::parse_iso_date(&dates[0])?,
                 ch::parse_iso_date(&dates[dates.len() - 1])?,
@@ -271,11 +274,12 @@ fn windowed_date_domain(quote: Signal<Load<Quote>>) -> Option<(f64, f64)> {
 /// so the two line up bar for bar; the bars at either end are cut in half by that pin, which is
 /// where the price line ends too.
 pub fn volume_strip(quote: Signal<Load<Quote>>) -> impl Piece {
+    let range = quotes::range();
     chart(move || {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
             return Vec::new();
         };
-        let Some((closes, dates)) = window(&q, window_days()) else {
+        let Some((closes, dates)) = window(&q, window_days(range)) else {
             return Vec::new();
         };
         let volumes = quotes::tail(&q.volumes, closes.len());
@@ -290,7 +294,7 @@ pub fn volume_strip(quote: Signal<Load<Quote>>) -> impl Piece {
             .collect()
     })
     .animated()
-    .x_domain_with(move || windowed_date_domain(quote))
+    .x_domain_with(move || windowed_date_domain(quote, range))
     .bare()
     .plot_insets(STRIP_INSETS)
     .height(56.0)
@@ -302,11 +306,12 @@ pub fn volume_strip(quote: Signal<Load<Quote>>) -> impl Piece {
 /// differently on the way.
 pub fn drawdown_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     let red = trend_color(false);
+    let range = quotes::range();
     chart(move || {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
             return Vec::new();
         };
-        let Some((closes, dates)) = window(&q, window_days()) else {
+        let Some((closes, dates)) = window(&q, window_days(range)) else {
             return Vec::new();
         };
         let dd = quotes::drawdown_series(closes);
@@ -341,11 +346,12 @@ pub fn drawdown_chart(quote: Signal<Load<Quote>>) -> impl Piece {
 /// edges on a continuous axis, so the axis labels itself in round percentages rather than naming
 /// every bin.
 pub fn returns_histogram(quote: Signal<Load<Quote>>, axis_label: String) -> impl Piece {
+    let range = quotes::range();
     chart(move || {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
             return Vec::new();
         };
-        let Some((closes, _)) = window(&q, window_days()) else {
+        let Some((closes, _)) = window(&q, window_days(range)) else {
             return Vec::new();
         };
         let hist = quotes::return_histogram(&quotes::daily_returns(closes), 9);
@@ -496,8 +502,9 @@ pub fn sparkline(quote: Signal<Load<Quote>>) -> impl Piece {
 /// relative performance straight off the lines. One series per symbol on the crate's own
 /// colorblind-safe palette, named in the legend.
 pub fn performance_chart(list: Signal<Vec<String>>) -> impl Piece {
+    let range = quotes::range();
     chart(move || {
-        let days = window_days();
+        let days = window_days(range);
         let mut marks: Vec<Mark> = Vec::new();
         for symbol in list.get() {
             let quote = quotes::resource_for(&symbol).signal();
@@ -553,8 +560,9 @@ pub fn risk_return_scatter(
     list: Signal<Vec<String>>,
     sel: Signal<Option<ch::Selection>>,
 ) -> impl Piece {
+    let range = quotes::range();
     chart(move || {
-        let days = window_days();
+        let days = window_days(range);
         let mut marks: Vec<Mark> = Vec::new();
         for symbol in list.get() {
             let quote = quotes::resource_for(&symbol).signal();
@@ -609,8 +617,9 @@ pub fn correlation_matrix(
     list: Signal<Vec<String>>,
     sel: Signal<Option<ch::Selection>>,
 ) -> impl Piece {
+    let range = quotes::range();
     chart(move || {
-        let days = window_days();
+        let days = window_days(range);
         let symbols = list.get();
         // Each symbol's returns once, not once per pair.
         let series: Vec<(String, Vec<f64>)> = symbols
@@ -666,11 +675,12 @@ pub fn volume_profile(
     quote: Signal<Load<Quote>>,
     sel: Signal<Option<ch::Selection>>,
 ) -> impl Piece {
+    let range = quotes::range();
     chart(move || {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
             return Vec::new();
         };
-        let Some((closes, _)) = window(&q, window_days()) else {
+        let Some((closes, _)) = window(&q, window_days(range)) else {
             return Vec::new();
         };
         let volumes = quotes::tail(&q.volumes, closes.len());

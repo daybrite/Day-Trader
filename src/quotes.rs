@@ -29,7 +29,8 @@
 //! bundle; a unit test can only prove they parse in the source tree.
 
 use day::prelude::*;
-use std::cell::RefCell;
+use day_piece_settings::Pref;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 /// The prefs key holding the watchlist as a comma-joined symbol list.
@@ -38,10 +39,17 @@ const PREF_SYMBOLS: &str = "trader.symbols";
 const PREF_SORT: &str = "trader.sort";
 const PREF_CHIP: &str = "trader.chip";
 const PREF_OVERLAY: &str = "trader.overlay";
-/// The HTTP proxy template quote fetches go through; empty means fetch Yahoo directly.
-const PREF_PROXY: &str = "trader.proxy";
-/// Whether to read the bundled example quotes instead of fetching. `"1"` is on.
-const PREF_DEMO: &str = "trader.demo";
+/// The HTTP proxy template quote fetches go through (https://daybrite.dev/docs/settings): a
+/// typed setting the Data group's Proxy row edits live, empty unless the user sets one. There
+/// is no default: an unset proxy means "fetch directly" on a native build and selects the
+/// bundled demo data on the web ([`DataSource`]).
+pub static PROXY: Pref<String> = Pref::new("trader.proxy", String::new);
+/// Whether to read the bundled example quotes instead of fetching: the Data group's demo-data
+/// switch (the web build also falls back to them on its own while no proxy is set).
+pub static DEMO: Pref<bool> = Pref::new("trader.demo", || false);
+/// How long typing in the Proxy row may pause before the template is tried: the row persists
+/// every keystroke, and a half-typed relay is not worth a round trip.
+const PROXY_SETTLE_MS: u32 = 800;
 
 /// Where the web build reads the bundled snapshots from.
 ///
@@ -444,10 +452,6 @@ pub struct Watchlist {
     symbols: Signal<Vec<String>>,
     /// Bumped by the settings Refresh action; every quote Resource tracks it.
     generation: Signal<u64>,
-    proxy: Signal<String>,
-    /// Read the bundled snapshots instead of fetching (the setting; the web build also falls
-    /// back to them on its own while no proxy is set).
-    demo: Signal<bool>,
     sort: Signal<Sort>,
     chip: Signal<ChipMode>,
     overlay: Signal<bool>,
@@ -466,15 +470,9 @@ impl Ambient for Watchlist {
                 .collect(),
             None => DEFAULT_SYMBOLS.iter().map(|s| s.to_string()).collect(),
         };
-        // There is no default: an unset proxy means "fetch directly" on a native build and
-        // selects the bundled demo data on the web ([`DataSource`]). A saved value is used
-        // verbatim, the empty string included.
-        let proxy = day_part_prefs::get(PREF_PROXY).unwrap_or_default();
         Watchlist {
             symbols: Signal::new(seed),
             generation: Signal::new(0),
-            proxy: Signal::new(proxy),
-            demo: Signal::new(day_part_prefs::get(PREF_DEMO).is_some_and(|v| v == "1")),
             sort: Signal::new(
                 day_part_prefs::get(PREF_SORT)
                     .map(|s| Sort::from_key(&s))
@@ -564,32 +562,35 @@ impl ChipMode {
     }
 }
 
-/// The proxy template, persisted, empty unless the user sets one.
+/// The proxy template's signal: what [`PROXY`]'s row edits and every fetch reads.
 pub fn proxy() -> Signal<String> {
-    Watchlist::app().proxy
+    PROXY.signal()
 }
 
-pub fn set_proxy(template: &str) {
-    day_part_prefs::set(PREF_PROXY, template);
-    proxy().set(template.to_string());
-}
-
-/// The demo-data setting, persisted. Two-way bound to the settings toggle, so
-/// [`persist_demo`] writes it through the way [`persist_overlay`] does.
+/// The demo-data setting's signal: what [`DEMO`]'s row toggles.
 pub fn demo() -> Signal<bool> {
-    Watchlist::app().demo
+    DEMO.signal()
 }
 
-/// Write the demo-data choice to disk without touching the signal (the toggle already carries
-/// it), and refetch everything when it actually changed: the rows come from the other source
-/// now. Same shape as [`persist_overlay`]: a function that also `set` the signal would close a
-/// loop with the effect that watches it.
-pub fn persist_demo(on: bool) {
-    let was = day_part_prefs::get(PREF_DEMO).is_some_and(|v| v == "1");
-    day_part_prefs::set(PREF_DEMO, if on { "1" } else { "0" });
-    if was != on {
-        reload_all();
-    }
+/// Refetch everything when a source setting changes, so the rows come from the other source
+/// at once rather than at the next refresh. Called once from `root()`, in the root scope. The
+/// demo switch reloads immediately; the proxy template waits for typing to pause
+/// ([`PROXY_SETTLE_MS`]), since its row persists every keystroke.
+pub fn watch_source_settings() {
+    DEMO.watch(|_| reload_all());
+    let edits: Rc<Cell<u64>> = Rc::new(Cell::new(0));
+    PROXY.watch(move |_| {
+        let edit = edits.get() + 1;
+        edits.set(edit);
+        let edits = edits.clone();
+        day::task(async move {
+            day::sleep(PROXY_SETTLE_MS).await;
+            // A later keystroke scheduled its own reload; this one stands down.
+            if edits.get() == edit {
+                reload_all();
+            }
+        });
+    });
 }
 
 /// Where the quotes on screen come from.

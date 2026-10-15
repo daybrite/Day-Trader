@@ -12,7 +12,7 @@ mod watchlist;
 
 pub use detail::detail_page;
 pub use manage::{add_symbol_command, install_app_menu, manage_page};
-pub use settings::{apply_startup, settings_page};
+pub use settings::data_group;
 pub use watchlist::watchlist_page;
 
 /// The notice every page shows while the app is reading its bundled snapshots instead of live

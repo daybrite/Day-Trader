@@ -1,126 +1,53 @@
-//! Settings: About (name, version, build date, links), language and appearance overrides
-//! (persisted via day-part-prefs; the Day-Skies pattern), and the data refresh action.
+//! Settings: the Data group of the shared settings surface (https://daybrite.dev/docs/settings):
+//! the proxy template quote fetches go through, the demo-data switch, and the refresh action.
+//! Appearance, language and About come from day-piece-settings itself (`lib.rs`).
 
 use crate::quotes;
 use crate::res;
 use day::prelude::*;
+use day_piece_settings::prelude::*;
 
-const PREF_LOCALE: &str = "trader.locale"; // a res::locales::ALL tag; absent = system
-const PREF_THEME: &str = "trader.theme"; // "light" | "dark"; absent = system
-
-/// Apply the persisted language and theme overrides, called once from `root()`, right after
-/// the locale catalog installs and before the first page builds. The shared piece owns the
-/// mechanics (docs/windows.md), including the env-wins rule: a `DAY_THEME`/`--locale` launch
-/// keeps its override no matter what an earlier run persisted.
-pub fn apply_startup() {
-    day_piece_settings::apply_startup(PREF_THEME, PREF_LOCALE);
-}
-
-pub fn settings_page() -> impl Piece {
-    let mut parts: Vec<AnyPiece> = vec![
-        AnyPiece::new(
-            section((
-                labeled(
-                    res::str::settings_name_label(),
-                    label(res::str::app_title()),
-                ),
-                labeled(
-                    res::str::settings_version_label(),
-                    label(env!("CARGO_PKG_VERSION")).id("about-version"),
-                ),
-                labeled(
-                    res::str::settings_build_label(),
-                    label(env!("DAY_TRADER_BUILD_DATE")).id("about-build"),
-                ),
-                link(res::str::settings_website(), "https://daybrite.dev").id("about-day"),
-                link(res::str::settings_data_link(), "https://finance.yahoo.com")
-                    .id("about-source"),
-            ))
-            .title(res::str::settings_about_section()),
-        ),
-        // Language + appearance: the shared settings rows (docs/windows.md,
-        // day-piece-settings). Same ids, same keys, same live apply; the appearance row is
-        // Cap::Appearance-gated inside the piece.
-        AnyPiece::new(
-            section((day_piece_settings::language_picker(
-                PREF_LOCALE,
-                res::locales::ALL,
-            ),))
-            .title(res::str::settings_language_section()),
-        ),
-    ];
-    if capability(Cap::Appearance) != Support::Unsupported {
-        parts.push(AnyPiece::new(
-            section((day_piece_settings::appearance_picker(PREF_THEME),))
-                .title(res::str::settings_theme_section()),
-        ));
-    }
-    // The proxy every quote fetch is routed through. Edited as a template rather than a
-    // host, because the two proxy families take the target differently: a placeholder in a
-    // query parameter, or a prefix the target is appended to (quotes::proxied). The app ships
-    // no proxy, so this is empty until someone fills it in; while it is empty, the web build
-    // reads the bundled snapshots.
-    let proxy = quotes::proxy();
-    let entry = Signal::new(proxy.get_untracked());
-    // Two-way bound, persisted by an effect, exactly like the detail page's overlay toggle.
-    let demo = quotes::demo();
-    Effect::new(move || quotes::persist_demo(demo.get()));
-    parts.push(AnyPiece::new(
-        section((
-            labeled(
-                res::str::settings_proxy_label(),
-                text_field(entry)
-                    // An example, not a default: nothing is sent anywhere until the field holds
-                    // a template the user chose.
-                    .placeholder("https://relay.example/raw?url=%u".to_string())
-                    .id("proxy-field"),
-            ),
-            label(res::str::settings_proxy_hint()).font(Font::Footnote),
-            row((
-                button(res::str::settings_proxy_apply())
-                    .action(move || {
-                        quotes::set_proxy(&entry.get_untracked());
-                        // Re-fetch every symbol through the new route, so the field's effect is
-                        // visible immediately rather than at the next refresh.
-                        quotes::reload_all();
-                    })
-                    .prominent()
-                    .id("proxy-apply"),
-                button(res::str::settings_proxy_direct())
-                    .action(move || {
-                        entry.set(String::new());
-                        quotes::set_proxy("");
-                        quotes::reload_all();
-                    })
-                    .id("proxy-direct"),
-            ))
-            .spacing(8.0),
-            // The bundled snapshots, on demand and on any platform. The web build turns them on
-            // by itself while the field above is empty; this makes them a choice everywhere.
-            labeled(
-                res::str::settings_demo_label(),
-                toggle(demo).id("demo-toggle"),
-            ),
-            label(res::str::settings_demo_hint()).font(Font::Footnote),
-        ))
-        .title(res::str::settings_proxy_section()),
-    ));
-    parts.push(AnyPiece::new(
-        section((
-            label(res::str::settings_refresh_hint()).font(Font::Footnote),
-            button(res::str::settings_refresh())
-                .action(quotes::reload_all)
-                .prominent()
-                .id("refresh-all"),
-        ))
-        .title(res::str::settings_data_section()),
-    ));
-
-    scroll(
-        column((super::demo_notice(), form(PieceVec(parts))))
-            .spacing(12.0)
-            .align(HAlign::Leading)
-            .padding(16.0),
-    )
-    .grow()
+/// The Data group: a page of the Preferences window on desktop, a row of the settings root on
+/// a phone. Every row is bound to its `Pref` in `quotes.rs`, so an edit persists as it is made
+/// and `quotes::watch_source_settings` refetches on the change.
+pub fn data_group() -> Group {
+    Group::new("data", res::str::settings_data_section())
+        .icon(Symbol::Refresh)
+        // The proxy every quote fetch is routed through. Edited as a template rather than a
+        // host, because the two proxy families take the target differently: a placeholder in
+        // a query parameter, or a prefix the target is appended to (quotes::proxied). The app
+        // ships no proxy, so this is empty until someone fills it in; while it is empty, the
+        // web build reads the bundled snapshots. "Fetch directly" is the reset: the key leaves
+        // the store and the field empties with it.
+        .section(
+            Section::new()
+                .title(res::str::settings_proxy_section())
+                .row(
+                    rows::text(&quotes::PROXY, res::str::settings_proxy_label())
+                        // An example, not a default: nothing is sent anywhere until the field
+                        // holds a template the user chose.
+                        .placeholder("https://relay.example/raw?url=%u")
+                        .id("proxy-field"),
+                )
+                .row(
+                    rows::action(res::str::settings_proxy_direct(), || quotes::PROXY.reset())
+                        .id("proxy-direct"),
+                )
+                .footer(res::str::settings_proxy_hint()),
+        )
+        // The bundled snapshots, on demand and on any platform. The web build turns them on by
+        // itself while the field above is empty; this makes them a choice everywhere.
+        .section(
+            Section::new()
+                .row(rows::toggle(&quotes::DEMO, res::str::settings_demo_label()).id("demo-toggle"))
+                .footer(res::str::settings_demo_hint()),
+        )
+        .section(
+            Section::new()
+                .row(
+                    rows::action(res::str::settings_refresh(), quotes::reload_all)
+                        .id("refresh-all"),
+                )
+                .footer(res::str::settings_refresh_hint()),
+        )
 }

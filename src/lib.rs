@@ -1,9 +1,11 @@
 //! Day Trader, a stock & commodity quotes app built with [Day](https://daybrite.dev), modeled
 //! on Apple Stocks. `root()` is the whole UI, shared by every platform: a sidebar nav
 //! whose symbol rows derive reactively from the persisted watchlist (`quotes.rs`), a rich
-//! watchlist overview, a canvas-drawn detail chart per instrument, and manage/settings pages.
+//! watchlist overview, a canvas-drawn detail chart per instrument, a manage page, and the
+//! shared settings surface (https://daybrite.dev/docs/settings).
 
 use day::prelude::*;
+use day_piece_settings::prelude::*;
 
 mod charts;
 mod pages;
@@ -55,27 +57,29 @@ fn symbol_page(id: &str) -> AnyPiece {
 }
 
 pub fn root() -> impl Piece {
-    // Registers every locale under `resource/locales/` (generated, §18.5), then applies the
-    // persisted language/theme overrides before the first page builds.
+    // Registers every locale under `resource/locales/` (generated, §18.5) before the first
+    // page builds.
     res::locales::install();
-    pages::apply_startup();
+    // Settings and About (https://daybrite.dev/docs/settings): appearance and language from
+    // Day's catalog, the Data group (pages/settings.rs), the app's name and version from
+    // Day.toml. A desktop gets the App menu's Settings… and About items and their windows;
+    // both shells below also keep a Settings entry, the same pages in the window itself.
+    let prefs = Preferences::new()
+        .about(
+            About::from_manifest()
+                .icon(res::images::app_logo)
+                .link(day::tr("day-about-website"), "https://daybrite.dev")
+                .link(res::str::settings_data_link(), "https://finance.yahoo.com"),
+        )
+        .group(general_group(res::locales::ALL))
+        .group(pages::data_group())
+        .install();
+    // A changed proxy or demo switch refetches every symbol through the new source.
+    quotes::watch_source_settings();
     // The desktop's Add/Remove Symbol items (docs/menus.md). Installed on every target: the
     // toolkits with no menu bar have nowhere to draw it, and the phones reach the same
     // add flow through the Symbols tab's `+` button instead.
     pages::install_app_menu();
-    // The Preferences window (docs/windows.md): the settings page as a singleton window on
-    // desktop (auto Settings…/⌘, item), the cover fallback on mobile; the sidebar item
-    // keeps working everywhere.
-    day::register_preferences_with(
-        day::WindowOptions {
-            title: res::str::nav_settings().format(),
-            size: Size::new(560.0, 640.0),
-            min_size: None,
-            app_name: None,
-            ..Default::default()
-        },
-        pages::settings_page,
-    );
 
     // Start every tracked symbol's fetch now, in the (permanent) root scope.
     let list = quotes::symbols();
@@ -93,19 +97,22 @@ pub fn root() -> impl Piece {
     // duplicate to `day lint`, which cannot know the two are mutually exclusive.
     // File ▸ New Window (docs/windows.md): the same shell again, which is why the tab, the two
     // push stacks and the chart range live on a `Scene`; each window gets its own.
-    day::register_new_window(window_shell);
+    day::register_new_window({
+        let prefs = prefs.clone();
+        move || window_shell(prefs.clone())
+    });
 
-    window_shell()
+    window_shell(prefs)
 }
 
 /// One window's UI: the first window's, and every File ▸ New Window's.
-fn window_shell() -> impl Piece {
-    Scene::scoped(|_scene| {
+fn window_shell(prefs: Prefs) -> impl Piece {
+    Scene::scoped(move |_scene| {
         // Two shells, two types: `Either` picks one without boxing either.
         let shell = if day::size_class().is_some_and(|c| !c.prefers_split()) {
-            Either::Left(tabbed_shell())
+            Either::Left(tabbed_shell(prefs.clone()))
         } else {
-            Either::Right(sidebar_shell())
+            Either::Right(sidebar_shell(prefs.clone()))
         };
         shell.id("nav")
     })
@@ -120,7 +127,11 @@ fn window_shell() -> impl Piece {
 /// not: the sidebar owns symbol keys at the top level (`DIA`), while here a symbol is pushed
 /// onto the owning tab's stack and its route nests under the tab (`watchlist/DIA`). Use
 /// [`open_symbol`] rather than `navigate` to reach a symbol from a page that serves both.
-fn tabbed_shell() -> impl Piece {
+///
+/// The Settings tab is the shared surface's navigation presentation: About, then one row per
+/// group, each pushing its page. It stays a tab on every platform (not only where no menu bar
+/// reaches the window), so the phone and the desktop read the same way.
+fn tabbed_shell(prefs: Prefs) -> impl Piece {
     nav(tab())
         .style(NavStyle::Tabs)
         .item_icon(
@@ -139,7 +150,7 @@ fn tabbed_shell() -> impl Piece {
             "settings".to_string(),
             res::str::nav_settings(),
             res::vectors::tab_settings.clone(),
-            pages::settings_page,
+            move || prefs.page(),
         )
 }
 
@@ -248,8 +259,10 @@ fn symbols_stack() -> impl Piece {
         .id("symbols-stack")
 }
 
-/// The desktop shell: the sidebar this app has always had, with one row per tracked symbol.
-fn sidebar_shell() -> impl Piece {
+/// The desktop shell: the sidebar this app has always had, with one row per tracked symbol,
+/// and a Settings row on every platform showing the same pages the Settings… menu item opens
+/// in their own window.
+fn sidebar_shell(prefs: Prefs) -> impl Piece {
     let list = quotes::symbols();
     let section: Signal<Option<String>> = Signal::new(Some("watchlist".into()));
     nav(section)
@@ -276,7 +289,7 @@ fn sidebar_shell() -> impl Piece {
         .item(
             "settings".to_string(),
             res::str::nav_settings(),
-            pages::settings_page,
+            move || prefs.page(),
         )
 }
 
