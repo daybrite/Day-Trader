@@ -688,6 +688,23 @@ pub fn set_sort(v: Sort) {
     sort().set(v);
 }
 
+/// The sort as a two-way binding for the watchlist's picker: reads follow [`sort`], a choice
+/// persists through [`set_sort`].
+#[derive(Clone, Copy)]
+pub struct SortBinding;
+
+impl Binding<Sort> for SortBinding {
+    fn read(&self) -> Sort {
+        sort().get()
+    }
+    fn peek(&self) -> Sort {
+        sort().get_untracked()
+    }
+    fn write(&self, v: Sort) {
+        set_sort(v);
+    }
+}
+
 pub fn chip_mode() -> Signal<ChipMode> {
     Watchlist::app().chip
 }

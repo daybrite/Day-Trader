@@ -34,8 +34,6 @@ pub fn demo_notice() -> impl Piece {
             })
             .font(Font::Callout)
             .bold()
-            // `.id` before the wrapping decorators, so the script's assert lands on the label
-            // rather than on the padding node.
             .id("demo-notice")
             .padding(Insets::symmetric(10.0, 12.0))
             .background(Color::rgba(0.95, 0.65, 0.10, 0.22))

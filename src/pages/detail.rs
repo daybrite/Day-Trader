@@ -4,7 +4,7 @@
 //! [`Resource`] so a refetch or range tap updates in place.
 
 use crate::charts;
-use crate::pages::watchlist::{change_chip, compact_width};
+use crate::pages::watchlist::change_chip;
 use crate::quotes;
 use crate::res;
 use day::prelude::*;
@@ -85,6 +85,15 @@ fn legend(color: Color, text: LocalizedText) -> impl Piece {
     .align(VAlign::Center)
 }
 
+/// The analysis panel's readings, in the segmented control's order.
+#[derive(Clone, Copy, PartialEq)]
+enum Analysis {
+    Drawdown,
+    Returns,
+    Monthly,
+    Profile,
+}
+
 /// The analysis panel under the chart: how far the price sits below its peak, how its daily
 /// moves are distributed, or how each calendar month went, one at a time, picked by a segmented
 /// control. Three charts rather than one with switching marks, because each is a different
@@ -92,56 +101,45 @@ fn legend(color: Color, text: LocalizedText) -> impl Piece {
 /// are properties of the chart, not of its marks. The choice is page-local: a way of looking at
 /// this symbol, not a setting.
 fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
-    let picked = Signal::new(0usize);
-    let names: Vec<String> = vec![
-        res::str::analysis_drawdown().format(),
-        res::str::analysis_returns().format(),
-        res::str::analysis_monthly().format(),
-        res::str::analysis_profile().format(),
-    ];
+    let picked = Signal::new(Analysis::Drawdown);
     // The selection the volume profile writes and reads (day-piece-charts README "Selection").
     let sel = Signal::new(None);
     let title = label(res::str::analysis_label()).font(Font::Callout);
-    let control = picker(names, picked).segmented().id("analysis-picker");
+    let control = picker(
+        picked,
+        [
+            (Analysis::Drawdown, res::str::analysis_drawdown()),
+            (Analysis::Returns, res::str::analysis_returns()),
+            (Analysis::Monthly, res::str::analysis_monthly()),
+            (Analysis::Profile, res::str::analysis_profile()),
+        ],
+    )
+    .segmented()
+    .id("analysis-picker");
     // The caption and a three-segment picker share a row where there is room; on a phone the
     // picker takes the whole width, or its last segment lands off-screen.
-    let header = if compact_width() {
-        column((title, control))
-            .spacing(6.0)
-            .align(HAlign::Leading)
-            .grow_w()
-            .any()
-    } else {
-        row((title, spacer(), control))
-            .spacing(10.0)
-            .align(VAlign::Center)
-            .grow_w()
-            .any()
-    };
+    let header = adaptive((title, spacer(), control))
+        .spacing(Space::S)
+        .grow_w();
     column((
         header,
-        when(
-            move || picked.get() == 1,
-            move || {
-                charts::returns_histogram(quote, res::str::axis_return().format())
-                    .id("analysis-returns")
+        switch(
+            move || picked.get(),
+            move |a| match a {
+                Analysis::Drawdown => charts::drawdown_chart(quote).id("analysis-drawdown").any(),
+                Analysis::Returns => {
+                    charts::returns_histogram(quote, res::str::axis_return().format())
+                        .id("analysis-returns")
+                        .any()
+                }
+                Analysis::Monthly => charts::monthly_heat_map(quote).id("analysis-monthly").any(),
+                Analysis::Profile => charts::volume_profile(quote, sel)
+                    .id("analysis-profile")
+                    .any(),
             },
-        )
-        .otherwise(move || {
-            when(
-                move || picked.get() == 2,
-                move || charts::monthly_heat_map(quote).id("analysis-monthly"),
-            )
-            .otherwise(move || {
-                when(
-                    move || picked.get() == 3,
-                    move || charts::volume_profile(quote, sel).id("analysis-profile"),
-                )
-                .otherwise(move || charts::drawdown_chart(quote).id("analysis-drawdown"))
-            })
-        }),
+        ),
     ))
-    .spacing(8.0)
+    .spacing(Space::S)
     .align(HAlign::Leading)
     .grow_w()
 }
@@ -173,9 +171,7 @@ fn stats_grid(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
     .spacing(14.0)
     .align(Alignment::TopLeading)
     .grow_w()
-    .padding(14.0)
-    .background(Color::rgba(0.5, 0.5, 0.5, 0.10))
-    .corner_radius(12.0)
+    .card()
 }
 
 pub fn detail_page(symbol: &str) -> impl Piece + use<> {
@@ -214,10 +210,11 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
         .spacing(2.0)
         .align(HAlign::Trailing),
     ))
-    .spacing(12.0);
+    .spacing(Space::M);
 
-    let ranges: Vec<String> = charts::RANGES.iter().map(|(n, _)| n.to_string()).collect();
-    let range_picker = picker(ranges, range).segmented().id("range-picker");
+    let range_picker = picker(range, charts::range_options())
+        .segmented()
+        .id("range-picker");
     // The overlay preference is app-wide and persisted, so a two-way binding writes through
     // to prefs rather than living only for this page's lifetime.
     let overlay_on = quotes::overlay();
@@ -234,7 +231,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                         spinner(),
                         label(res::str::detail_loading()).font(Font::Callout),
                     ))
-                    .spacing(8.0)
+                    .spacing(Space::S)
                     .id("detail-loading")
                 },
             ),
@@ -268,7 +265,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                             legend(charts::SMA20_COLOR, res::str::overlay_sma20()),
                             legend(charts::SMA50_COLOR, res::str::overlay_sma50()),
                         ))
-                        .spacing(12.0)
+                        .spacing(Space::M)
                         .id("overlay-legend")
                     },
                 ),
@@ -301,9 +298,9 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             stats_grid(quote),
             label(res::str::data_attribution()).font(Font::Caption2),
         ))
-        .spacing(12.0)
+        .spacing(Space::M)
         .align(HAlign::Leading)
-        .padding(16.0),
+        .padding(Space::L),
     )
     .grow()
 }

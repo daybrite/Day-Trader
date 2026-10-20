@@ -34,16 +34,8 @@ pub fn change_chip(quote: Signal<day::reactive::Load<quotes::Quote>>, id: String
     })
     .font(Font::Callout)
     .color(Color::WHITE)
-    // `.id` before the wrapping decorators: padding/background each wrap the label in a new
-    // node, and an id applied after would tag the wrapper instead of the label the script
-    // asserts on.
     .id(id)
-    .padding(Insets {
-        top: 3.0,
-        bottom: 3.0,
-        leading: 8.0,
-        trailing: 8.0,
-    })
+    .padding(Insets::symmetric(8.0, 3.0))
     .background(move || {
         quote.with(|l| {
             l.ready()
@@ -69,13 +61,6 @@ fn chip_mode_button() -> impl Piece {
     .id("chip-mode")
 }
 
-/// Is this window too narrow to put controls side by side? Tracked, so crossing the breakpoint
-/// (a phone rotating, a desktop window dragged narrow) re-lays the controls in place. A backend
-/// that reports no class is treated as roomy; every one that does report is a real measurement.
-pub(crate) fn compact_width() -> bool {
-    day::size_class().is_some_and(|c| !c.prefers_split())
-}
-
 /// Today's breadth over the whole watchlist: how many symbols are up, how many down, and the
 /// day's biggest mover each way, which is the summary a list of rows cannot give at a glance.
 fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
@@ -85,16 +70,14 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
                 caption: Box<dyn Fn() -> String>,
                 tint: Option<Color>,
                 id: &str| {
-        // Color before `.id`: `.id` yields an AnyPiece, and the tint has to land on the label.
-        let mut v = label(value).font(Font::Subheadline).bold();
-        if let Some(c) = tint {
-            v = v.color(c);
-        }
+        let v = label(value)
+            .font(Font::Subheadline)
+            .bold()
+            .apply_some(tint, |v, c| v.color(c));
         column((v.id(id.to_string()), label(caption).font(Font::Caption2)))
             .spacing(1.0)
             .align(HAlign::Leading)
             .grow_w()
-            .any()
     };
     // The mover cells carry the symbol as their value and the percentage in the caption. Both
     // on the value line wraps to two lines on a phone, which drops that cell's caption below
@@ -152,14 +135,7 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
     ))
     .spacing(10.0)
     .align(VAlign::Center)
-    .padding(Insets {
-        top: 10.0,
-        bottom: 10.0,
-        leading: 14.0,
-        trailing: 14.0,
-    })
-    .background(Color::rgba(0.5, 0.5, 0.5, 0.10))
-    .corner_radius(12.0)
+    .card()
     .id("breadth")
 }
 
@@ -167,25 +143,14 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
 /// start, so the lines read as relative performance whatever the instruments' prices. The range
 /// picker is the detail page's own signal: the range chosen here is the one a symbol opens on.
 fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
-    let ranges: Vec<String> = charts::RANGES.iter().map(|(n, _)| n.to_string()).collect();
     let title = label(res::str::performance_title()).font(Font::Headline);
-    let range_picker = picker(ranges, quotes::range())
+    let range_picker = picker(quotes::range(), charts::range_options())
         .segmented()
         .id("wl-range-picker");
     // The title and a five-segment picker do not fit side by side on a phone; there they stack.
-    let header = if compact_width() {
-        column((title, range_picker))
-            .spacing(8.0)
-            .align(HAlign::Leading)
-            .grow_w()
-            .any()
-    } else {
-        row((title, spacer(), range_picker))
-            .spacing(10.0)
-            .align(VAlign::Center)
-            .grow_w()
-            .any()
-    };
+    let header = adaptive((title, spacer(), range_picker))
+        .spacing(Space::S)
+        .grow_w();
     // Two selections, one per chart: each is written and read by the chart that owns it, and the
     // readouts below say in words what the guides say in pixels.
     let risk_sel = Signal::new(None);
@@ -195,13 +160,12 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
         label(move || match sel.get() {
             Some(s) => {
                 let v = s.values.first();
-                // Alphabetical argument order, as every generated `res::str` takes.
-                let (ret, symbol, vol) = (
-                    v.map(|v| v.label.clone()).unwrap_or_default(),
-                    v.map(|v| v.series.clone()).unwrap_or_default(),
-                    s.x_label.clone(),
-                );
-                res::str::wl_risk_readout(ret, symbol, vol).format()
+                res::str::wl_risk_readout(res::str::WlRiskReadout {
+                    ret: v.map(|v| v.label.clone()).unwrap_or_default(),
+                    symbol: v.map(|v| v.series.clone()).unwrap_or_default(),
+                    vol: s.x_label.clone(),
+                })
+                .format()
             }
             None => none().format(),
         })
@@ -219,16 +183,9 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
         charts::correlation_matrix(list, corr_sel).id("correlation"),
         readout(corr_sel, res::str::wl_corr_none).id("correlation-readout"),
     ))
-    .spacing(8.0)
+    .spacing(Space::S)
     .align(HAlign::Leading)
-    .padding(Insets {
-        top: 10.0,
-        bottom: 10.0,
-        leading: 14.0,
-        trailing: 14.0,
-    })
-    .background(Color::rgba(0.5, 0.5, 0.5, 0.10))
-    .corner_radius(12.0)
+    .card()
     .id("performance")
 }
 
@@ -262,15 +219,8 @@ fn row_card(symbol: String) -> impl Piece {
         .spacing(3.0)
         .align(HAlign::Trailing),
     ))
-    .spacing(12.0)
-    .padding(Insets {
-        top: 10.0,
-        bottom: 10.0,
-        leading: 14.0,
-        trailing: 14.0,
-    })
-    .background(Color::rgba(0.5, 0.5, 0.5, 0.10))
-    .corner_radius(12.0)
+    .spacing(Space::M)
+    .card()
     .on_tap(move || {
         crate::open_symbol(&nav_to);
     })
@@ -280,26 +230,6 @@ fn row_card(symbol: String) -> impl Piece {
 pub fn watchlist_page() -> impl Piece {
     let list = quotes::symbols();
     let sort = quotes::sort();
-    // The sort picker's labels, in `Sort::ALL` order.
-    let sort_names: Vec<String> = vec![
-        res::str::sort_manual().format(),
-        res::str::sort_name().format(),
-        res::str::sort_change().format(),
-    ];
-    // `picker` binds a usize; map it through `Sort::ALL` so the order is defined by the enum alone.
-    let sort_ix = Signal::new(
-        quotes::Sort::ALL
-            .iter()
-            .position(|s| *s == sort.get_untracked())
-            .unwrap_or(0),
-    );
-    Effect::new(move || {
-        let ix = sort_ix.get();
-        let chosen = quotes::Sort::ALL[ix.min(quotes::Sort::ALL.len() - 1)];
-        if chosen != sort.get_untracked() {
-            quotes::set_sort(chosen);
-        }
-    });
 
     scroll(
         column((
@@ -324,11 +254,9 @@ pub fn watchlist_page() -> impl Piece {
                         label(res::str::watchlist_empty()).font(Font::Callout),
                         label(res::str::watchlist_empty_hint()).font(Font::Footnote),
                     ))
-                    .spacing(4.0)
+                    .spacing(Space::XS)
                     .align(HAlign::Leading)
-                    .padding(14.0)
-                    .background(Color::rgba(0.5, 0.5, 0.5, 0.10))
-                    .corner_radius(12.0)
+                    .card()
                     .id("watchlist-empty")
                 },
             ),
@@ -340,28 +268,23 @@ pub fn watchlist_page() -> impl Piece {
             // List-wide controls, laid out for the width available. Side by side needs room
             // for a three-segment picker and the chip button; at compact width that overflows
             // (on a 392dp phone the localized segments alone eat the row and the button lands
-            // off-screen), so there they stack instead. Built once and placed either way, so
-            // each id has a single call site.
+            // off-screen), so there they stack instead.
             when(
                 move || !list.get().is_empty(),
                 move || {
-                    let sorter = picker(sort_names.clone(), sort_ix)
-                        .segmented()
-                        .id("sort-picker");
-                    let mode = chip_mode_button();
-                    if compact_width() {
-                        column((sorter, mode))
-                            .spacing(8.0)
-                            .align(HAlign::Leading)
-                            .grow_w()
-                            .any()
-                    } else {
-                        row((sorter, spacer(), mode))
-                            .spacing(10.0)
-                            .align(VAlign::Center)
-                            .grow_w()
-                            .any()
-                    }
+                    let sorter = picker(
+                        quotes::SortBinding,
+                        [
+                            (quotes::Sort::Manual, res::str::sort_manual()),
+                            (quotes::Sort::Name, res::str::sort_name()),
+                            (quotes::Sort::Change, res::str::sort_change()),
+                        ],
+                    )
+                    .segmented()
+                    .id("sort-picker");
+                    adaptive((sorter, spacer(), chip_mode_button()))
+                        .spacing(Space::S)
+                        .grow_w()
                 },
             ),
             each(
@@ -375,7 +298,7 @@ pub fn watchlist_page() -> impl Piece {
         ))
         .spacing(10.0)
         .align(HAlign::Leading)
-        .padding(16.0),
+        .padding(Space::L),
     )
     .grow()
 }

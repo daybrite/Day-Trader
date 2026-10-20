@@ -24,6 +24,16 @@ pub const RANGES: [(&str, usize); 5] = [
     ("All", usize::MAX),
 ];
 
+/// The range picker's options: the index into [`RANGES`] (what the window's range signal
+/// holds) beside its label.
+pub fn range_options() -> Vec<(usize, &'static str)> {
+    RANGES
+        .iter()
+        .enumerate()
+        .map(|(i, (n, _))| (i, *n))
+        .collect()
+}
+
 /// `c` at opacity `a`; chart fills reuse the trend color at several alphas.
 fn faded(c: Color, a: f64) -> Color {
     Color::rgba(c.r, c.g, c.b, a)
@@ -241,8 +251,8 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
             .guides(ch::Guides::RULE),
     )
     .plot_insets(STACKED_INSETS)
-    // After every Chart builder (`Decorated` does not forward them) and before `.height`/`.grow_w`
-    // (an id after a wrapper tags the wrapper, and a dayscript tap would miss the canvas).
+    // After every Chart builder: `.id` is a decorator, and the chart's own builders are not
+    // reachable once it is wrapped.
     .id("price-chart")
     .height(280.0)
     .grow_w()

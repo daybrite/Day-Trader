@@ -32,23 +32,15 @@ fn symbol_page(id: &str) -> AnyPiece {
             return page.any();
         }
         let id = id.to_string();
-        page.context_menu(vec![
-            menu_item(res::str::open_in_new_window().format()).action(move || {
-                let id = id.clone();
-                day::open_window(
-                    None,
-                    day::WindowOptions {
-                        title: id.clone(),
-                        size: Size::new(720.0, 640.0),
-                        min_size: None,
-                        app_name: None,
-                        ..Default::default()
-                    },
-                    day::WindowKind::Normal,
-                    move || symbol_page(&id),
-                );
-            }),
-        ])
+        page.context_menu([menu_item(res::str::open_in_new_window()).action(move || {
+            let id = id.clone();
+            day::open_window(
+                day::WindowOptions::default()
+                    .title(id.clone())
+                    .size(720.0, 640.0),
+                move || symbol_page(&id),
+            );
+        })])
         .any()
     } else {
         // A just-removed key mid-navigation: an empty pane, the selection resets right after.
@@ -132,26 +124,17 @@ fn window_shell(prefs: Prefs) -> impl Piece {
 /// group, each pushing its page. It stays a tab on every platform (not only where no menu bar
 /// reaches the window), so the phone and the desktop read the same way.
 fn tabbed_shell(prefs: Prefs) -> impl Piece {
-    nav(tab())
-        .style(NavStyle::Tabs)
-        .item_icon(
-            "watchlist".to_string(),
-            res::str::nav_watchlist(),
-            res::vectors::tab_watchlist.clone(),
-            watchlist_stack,
-        )
-        .item_icon(
-            "manage".to_string(),
-            res::str::nav_symbols(),
-            res::vectors::tab_symbols.clone(),
-            symbols_stack,
-        )
-        .item_icon(
-            "settings".to_string(),
-            res::str::nav_settings(),
-            res::vectors::tab_settings.clone(),
-            move || prefs.page(),
-        )
+    nav(tab()).style(NavStyle::Tabs).items((
+        item("watchlist", res::str::nav_watchlist())
+            .icon(res::vectors::tab_watchlist)
+            .page(watchlist_stack),
+        item("manage", res::str::nav_symbols())
+            .icon(res::vectors::tab_symbols)
+            .page(symbols_stack),
+        item("settings", res::str::nav_settings())
+            .icon(res::vectors::tab_settings)
+            .page(move || prefs.page()),
+    ))
 }
 
 /// Everything one window owns (docs/state.md): which tab it is on, each tab's push stack, and
@@ -276,7 +259,10 @@ fn sidebar_shell(prefs: Prefs) -> impl Piece {
         )
         // One sidebar row per tracked symbol, re-derived when the watchlist changes; the
         // page for a symbol key comes from `.destination` below.
-        .items(move || list.get(), |s: &String| item(s.clone(), s.clone()))
+        .items(nav_items(
+            move || list.get(),
+            |s: &String| item(s.clone(), s.clone()),
+        ))
         .destination(|key: &Option<String>| match key {
             Some(id) => symbol_page(id),
             None => spacer().any(),
@@ -302,5 +288,5 @@ fn sidebar_header() -> impl Piece {
     ))
     .spacing(2.0)
     .align(HAlign::Leading)
-    .padding(12.0)
+    .padding(Space::M)
 }

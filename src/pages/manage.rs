@@ -31,7 +31,7 @@ pub fn manage_page() -> impl Piece {
     let sym_list = quotes::symbols();
     let entry = Signal::new(String::new());
     let status = Signal::new(Status::Idle);
-    let preset_ix = Signal::new(0usize);
+    let preset = Signal::new(quotes::PRESETS[0]);
 
     let add_typed = move || {
         let symbol = quotes::normalize(&entry.get_untracked());
@@ -71,8 +71,8 @@ pub fn manage_page() -> impl Piece {
                     })
                     .id_of(move || format!("sym-remove-{}", slot.get())),
             ))
-            .spacing(8.0)
-            .padding(Insets::symmetric(4.0, 0.0))
+            .spacing(Space::S)
+            .padding(Insets::horizontal(4.0))
             // Open the symbol. Inside the Symbols tab this pushes onto that tab's own stack;
             // in the desktop sidebar it selects the row (the enclosing nav owns the route).
             .on_tap(move || {
@@ -84,24 +84,24 @@ pub fn manage_page() -> impl Piece {
         },
     )
     .row_height(RowHeight::Uniform(52.0))
-    .reorderable(true)
-    .on_reorder(quotes::move_symbol)
+    .reorderable(Reorder::new(quotes::move_symbol))
     // Swipe a row away where the platform has the gesture (docs/list.md); the desktops answer
     // `Cap::ListDelete = Unsupported` and keep using the row's own Remove button.
-    .deletable(true)
-    .delete_label(res::str::manage_remove().format())
-    .on_delete(|index| {
-        let list = quotes::symbols().get_untracked();
-        if let Some(sym) = list.get(index) {
-            quotes::remove(sym);
-        }
-    })
+    .deletable(
+        Delete::new(|index| {
+            let list = quotes::symbols().get_untracked();
+            if let Some(sym) = list.get(index) {
+                quotes::remove(sym);
+            }
+        })
+        .label(res::str::manage_remove()),
+    )
     .id("sym-rows")
     .height(312.0);
 
-    let preset_names: Vec<String> = quotes::PRESETS
+    let presets: Vec<(&str, String)> = quotes::PRESETS
         .iter()
-        .map(|s| format!("{s} — {}", quotes::preset_name(s)))
+        .map(|s| (*s, format!("{s} — {}", quotes::preset_name(s))))
         .collect();
 
     scroll(
@@ -123,13 +123,11 @@ pub fn manage_page() -> impl Piece {
                         .id("sym-add"),
                     labeled(
                         res::str::manage_preset_label(),
-                        picker(preset_names, preset_ix).id("preset-picker"),
+                        picker(preset, presets).id("preset-picker"),
                     ),
                     button(res::str::manage_add_preset())
                         .action(move || {
-                            let sym = quotes::PRESETS
-                                [preset_ix.get_untracked().min(quotes::PRESETS.len() - 1)];
-                            status.set(if quotes::add(sym) {
+                            status.set(if quotes::add(preset.get_untracked()) {
                                 Status::Added
                             } else {
                                 Status::Exists
@@ -143,9 +141,9 @@ pub fn manage_page() -> impl Piece {
                 .font(Font::Footnote)
                 .id("sym-status"),
         ))
-        .spacing(12.0)
+        .spacing(Space::M)
         .align(HAlign::Leading)
-        .padding(16.0),
+        .padding(Space::L),
     )
     .grow()
 }
@@ -173,17 +171,15 @@ pub fn prompt_for_symbol() {
 /// Remove there, because they have no swipe gesture and a `+` bar button belongs to a phone's
 /// navigation bar, not a desktop window's chrome.
 ///
-/// `app_menu_reactive`, not `app_menu`: the labels are `res::str` reads, so a runtime language
-/// switch re-lowers the menu in the new language.
+/// The labels are `res::str` reads, so a runtime language switch re-lowers the menu in the new
+/// language.
 pub fn install_app_menu() {
-    app_menu_reactive(|| {
-        let symbols = res::str::menu_symbols().format();
-        let remove = res::str::menu_remove_symbol().format();
+    app_menu(|| {
         vec![sub_menu(
-            symbols,
+            res::str::menu_symbols(),
             vec![
                 add_symbol_command().menu_item(),
-                menu_item(remove).action(|| {
+                menu_item(res::str::menu_remove_symbol()).action(|| {
                     // The selected symbol IS the current route on the sidebar shell; a route
                     // that is not a tracked symbol (the watchlist, settings) removes nothing.
                     if let Some(route) = current_route() {
@@ -199,13 +195,8 @@ pub fn install_app_menu() {
 }
 
 /// Shared by the Symbols menu and the sidebar toolbar.
-pub fn add_symbol_command() -> CommandHandle {
-    Command {
-        id: "add-symbol",
-        label: res::str::menu_add_symbol(),
-        action: prompt_for_symbol,
-    }
-    .build()
-    .image(res::vectors::add_symbol.clone())
-    .shortcut(Shortcut::new("n"))
+pub fn add_symbol_command() -> Command {
+    Command::new("add-symbol", res::str::menu_add_symbol(), prompt_for_symbol)
+        .image(res::vectors::add_symbol)
+        .shortcut(Shortcut::primary("n"))
 }

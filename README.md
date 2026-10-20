@@ -62,7 +62,7 @@ publishes the results to the [gallery](https://daybrite.dev/gallery/Day-Trader/)
 
 | macOS · AppKit | Windows · XAML | Linux · GTK |
 |:---:|:---:|:---:|
-| <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/macos-appkit/en/watchlist.png" width="300" alt="Watchlist on macOS"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/windows-xaml/en/watchlist.png" width="300" alt="Watchlist on Windows"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/linux-gtk/en/watchlist.png" width="300" alt="Watchlist on GTK"></kbd> |
+| <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/macos-appkit/en/watchlist.png" width="300" alt="Watchlist on macOS"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/windows-winui/en/watchlist.png" width="300" alt="Watchlist on Windows"></kbd> | <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/linux-gtk/en/watchlist.png" width="300" alt="Watchlist on GTK"></kbd> |
 
 | Linux · Qt | Web · DOM | HarmonyOS · ArkUI |
 |:---:|:---:|:---:|
@@ -85,7 +85,7 @@ target the app ships is listed in `Day.toml`.
 ```sh
 day doctor                       # toolchains present and missing, with fixes
 day launch -t macos-appkit       # build + run
-day launch -t windows-xaml       # on a Windows host
+day launch -t windows-winui      # on a Windows host
 day launch -t ios-uikit          # needs a booted Simulator
 day launch -t android-mdc        # needs a JDK and a running emulator or device
 day launch -t web-dom            # serves the WebAssembly build locally
