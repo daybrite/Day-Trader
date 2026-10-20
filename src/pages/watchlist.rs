@@ -23,7 +23,10 @@ pub fn change_text(q: &quotes::Quote, mode: quotes::ChipMode) -> String {
 /// The change chip: white text on the trend color, rounded, the Stocks signature. What it
 /// reads (absolute, percent, or both) is app-wide state driven by [`chip_mode_button`], so
 /// every chip on every page changes together.
-pub fn change_chip(quote: Signal<day::reactive::Load<quotes::Quote>>, id: String) -> impl Piece {
+pub fn change_chip(
+    quote: Signal<day::reactive::Load<quotes::Quote>>,
+    id: day::ElementId,
+) -> impl Piece {
     let mode = quotes::chip_mode();
     label(move || {
         quote.with(|l| {
@@ -58,7 +61,7 @@ fn chip_mode_button() -> impl Piece {
         quotes::ChipMode::Absolute => res::str::chip_absolute().format(),
     })
     .action(quotes::cycle_chip_mode)
-    .id("chip-mode")
+    .id(day::id!(chip_mode))
 }
 
 /// Today's breadth over the whole watchlist: how many symbols are up, how many down, and the
@@ -69,12 +72,12 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
     let cell = |value: Box<dyn Fn() -> String>,
                 caption: Box<dyn Fn() -> String>,
                 tint: Option<Color>,
-                id: &str| {
+                id: day::ElementId| {
         let v = label(value)
             .font(Font::Subheadline)
             .bold()
             .apply_some(tint, |v, c| v.color(c));
-        column((v.id(id.to_string()), label(caption).font(Font::Caption2)))
+        column((v.id(id), label(caption).font(Font::Caption2)))
             .spacing(1.0)
             .align(HAlign::Leading)
             .grow_w()
@@ -99,7 +102,7 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
     };
     row((
         // The same two counts as a ring, so the day's balance reads before the numbers do.
-        charts::breadth_donut(list).id("breadth-donut"),
+        charts::breadth_donut(list).id(day::id!(breadth_donut)),
         cell(
             Box::new(move || {
                 quotes::breadth(&list.get())
@@ -108,7 +111,7 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
             }),
             Box::new(|| res::str::breadth_up().format()),
             Some(charts::trend_color(true)),
-            "breadth-up",
+            day::id!(breadth_up),
         ),
         cell(
             Box::new(move || {
@@ -118,25 +121,25 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
             }),
             Box::new(|| res::str::breadth_down().format()),
             Some(charts::trend_color(false)),
-            "breadth-down",
+            day::id!(breadth_down),
         ),
         cell(
             mover_symbol(true),
             Box::new(move || res::str::breadth_best(mover_pct(true)).format()),
             None,
-            "breadth-best",
+            day::id!(breadth_best),
         ),
         cell(
             mover_symbol(false),
             Box::new(move || res::str::breadth_worst(mover_pct(false)).format()),
             None,
-            "breadth-worst",
+            day::id!(breadth_worst),
         ),
     ))
     .spacing(10.0)
     .align(VAlign::Center)
     .card()
-    .id("breadth")
+    .id(day::id!(breadth))
 }
 
 /// Every symbol's move over the shared range on one axis, each indexed to 100 at the window's
@@ -146,7 +149,7 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
     let title = label(res::str::performance_title()).font(Font::Headline);
     let range_picker = picker(quotes::range(), charts::range_options())
         .segmented()
-        .id("wl-range-picker");
+        .id(day::id!(wl_range_picker));
     // The title and a five-segment picker do not fit side by side on a phone; there they stack.
     let header = adaptive((title, spacer(), range_picker))
         .spacing(Space::S)
@@ -173,20 +176,20 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
     };
     column((
         header,
-        charts::performance_chart(list).id("performance-chart"),
+        charts::performance_chart(list).id(day::id!(performance_chart)),
         // Risk against return: the comparison a price line cannot make.
         label(res::str::wl_risk_title()).font(Font::Headline),
-        charts::risk_return_scatter(list, risk_sel).id("risk-return"),
-        readout(risk_sel, res::str::wl_risk_none).id("risk-readout"),
+        charts::risk_return_scatter(list, risk_sel).id(day::id!(risk_return)),
+        readout(risk_sel, res::str::wl_risk_none).id(day::id!(risk_readout)),
         // How the list moves together.
         label(res::str::wl_corr_title()).font(Font::Headline),
-        charts::correlation_matrix(list, corr_sel).id("correlation"),
-        readout(corr_sel, res::str::wl_corr_none).id("correlation-readout"),
+        charts::correlation_matrix(list, corr_sel).id(day::id!(correlation)),
+        readout(corr_sel, res::str::wl_corr_none).id(day::id!(correlation_readout)),
     ))
     .spacing(Space::S)
     .align(HAlign::Leading)
     .card()
-    .id("performance")
+    .id(day::id!(performance))
 }
 
 fn row_card(symbol: String) -> impl Piece {
@@ -213,8 +216,8 @@ fn row_card(symbol: String) -> impl Piece {
             })
             .font(Font::Title3)
             .bold()
-            .id(format!("wl-price-{symbol}")),
-            change_chip(quote, format!("wl-chg-{symbol}")),
+            .id(day::id!(wl_price, &symbol)),
+            change_chip(quote, day::id!(wl_chg, &symbol)),
         ))
         .spacing(3.0)
         .align(HAlign::Trailing),
@@ -224,7 +227,7 @@ fn row_card(symbol: String) -> impl Piece {
     .on_tap(move || {
         crate::open_symbol(&nav_to);
     })
-    .id(format!("wl-row-{symbol}"))
+    .id(day::id!(wl_row, symbol))
 }
 
 pub fn watchlist_page() -> impl Piece {
@@ -236,14 +239,14 @@ pub fn watchlist_page() -> impl Piece {
             label(res::str::watchlist_title())
                 .font(Font::Title)
                 .bold()
-                .id("watchlist-title"),
+                .id(day::id!(watchlist_title)),
             label(move || match quotes::source() {
                 quotes::DataSource::Mock => res::str::data_mock().format(),
                 quotes::DataSource::Demo => res::str::data_demo().format(),
                 quotes::DataSource::Live => res::str::data_live().format(),
             })
             .font(Font::Caption)
-            .id("data-source"),
+            .id(day::id!(data_source)),
             super::demo_notice(),
             // Empty watchlist: say so and point at the page that fixes it, rather than
             // rendering a bare heading over nothing.
@@ -257,7 +260,7 @@ pub fn watchlist_page() -> impl Piece {
                     .spacing(Space::XS)
                     .align(HAlign::Leading)
                     .card()
-                    .id("watchlist-empty")
+                    .id(day::id!(watchlist_empty))
                 },
             ),
             when(move || !list.get().is_empty(), move || breadth_strip(list)),
@@ -281,7 +284,7 @@ pub fn watchlist_page() -> impl Piece {
                         ],
                     )
                     .segmented()
-                    .id("sort-picker");
+                    .id(day::id!(sort_picker));
                     adaptive((sorter, spacer(), chip_mode_button()))
                         .spacing(Space::S)
                         .grow_w()

@@ -10,49 +10,49 @@ name: day-trader-walkthrough
 description: Watchlist, detail chart, symbol management, and settings on mock data.
 flow:
   - wait_for: { id: nav }
-  - wait_for: { id: watchlist-title }
-  - assert_text: { id: data-source, key: data_mock }
-  - assert_text: { id: wl-price-SPY, text: "629.15" }
-  - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
-  - assert_text: { id: "wl-price-GC=F", text: "3203.55" }
+  - wait_for: { id: watchlist_title }
+  - assert_text: { id: data_source, key: data_mock }
+  - assert_text: { id: wl_price:SPY, text: "629.15" }
+  - assert_text: { id: wl_chg:SPY, text: "+2.58 (0.41%)" }
+  - assert_text: { id: "wl_price:GC%3DF", text: "3203.55" }
   # Breadth strip: the whole list summarized. Mock data is deterministic, so the counts and
   # the biggest movers are exact.
-  - assert_text: { id: breadth-up, text: "1" }
-  - assert_text: { id: breadth-down, text: "5" }
-  - assert_text: { id: breadth-best, text: "SPY" }
-  - assert_text: { id: breadth-worst, text: "SI=F" }
+  - assert_text: { id: breadth_up, text: "1" }
+  - assert_text: { id: breadth_down, text: "5" }
+  - assert_text: { id: breadth_best, text: "SPY" }
+  - assert_text: { id: breadth_worst, text: "SI=F" }
   # The breadth donut and the performance chart are canvases: nothing to read, so their presence
   # is asserted and the screenshots carry the drawing. The performance card's range picker is the
   # window's shared range, the same signal the detail page's picker binds.
-  - assert_visible: { id: breadth-donut }
-  - assert_visible: { id: performance-chart }
+  - assert_visible: { id: breadth_donut }
+  - assert_visible: { id: performance_chart }
   - screenshot: watchlist
-  - select: { id: wl-range-picker, index: 0 }
-  - assert_value: { id: wl-range-picker, value: 0 }
+  - select: { id: wl_range_picker, index: 0 }
+  - assert_value: { id: wl_range_picker, value: 0 }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: watchlist-1m
-  - select: { id: wl-range-picker, index: 3 }
+  - select: { id: wl_range_picker, index: 3 }
 
   # The chip-mode control re-reads every chip at once: both → percent → absolute → both.
   # Cycled a full lap so the persisted setting ends where it started and a rerun sees the
   # same watchlist screenshot as this run did.
-  - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-SPY, text: "+0.41%" }
-  - assert_text: { id: "wl-chg-GC=F", text: "−0.52%" }
-  - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-SPY, text: "+2.58" }
+  - tap: { id: chip_mode }
+  - assert_text: { id: wl_chg:SPY, text: "+0.41%" }
+  - assert_text: { id: "wl_chg:GC%3DF", text: "−0.52%" }
+  - tap: { id: chip_mode }
+  - assert_text: { id: wl_chg:SPY, text: "+2.58" }
   - screenshot: watchlist-chip-absolute
-  - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
+  - tap: { id: chip_mode }
+  - assert_text: { id: wl_chg:SPY, text: "+2.58 (0.41%)" }
 
   # Sorting is a view over the manual order (the saved list is untouched), so switching back
   # to Custom restores it. The resulting order is verified by the screenshot, since dayscript
   # addresses watchlist rows by id, not by position.
-  - select: { id: sort-picker, index: 2 }
-  - assert_value: { id: sort-picker, value: 2 }
+  - select: { id: sort_picker, index: 2 }
+  - assert_value: { id: sort_picker, value: 2 }
   - screenshot: watchlist-sorted
-  - select: { id: sort-picker, index: 0 }
-  - assert_value: { id: sort-picker, value: 0 }
+  - select: { id: sort_picker, index: 0 }
+  - assert_value: { id: sort_picker, value: 0 }
 
   # A watchlist card is tappable through to the detail page.
   #
@@ -62,16 +62,16 @@ flow:
   # such route at all. Both assumptions failed on every phone run. What the tap is for (the
   # detail page showing that symbol) is the same at every size, so assert that; and reach the
   # next symbol through its row, since a section key is what means the same thing everywhere.
-  - tap: { id: wl-row-DIA }
-  - wait_for: { id: detail-price }
-  - assert_text: { id: detail-symbol, text: "DIA" }
-  - assert_text: { id: detail-price, text: "443.83" }
-  - assert_text: { id: detail-name, text: "SPDR Dow Jones Industrial Average ETF" }
+  - tap: { id: wl_row:DIA }
+  - wait_for: { id: detail_price }
+  - assert_text: { id: detail_symbol, text: "DIA" }
+  - assert_text: { id: detail_price, text: "443.83" }
+  - assert_text: { id: detail_name, text: "SPDR Dow Jones Industrial Average ETF" }
   # Chart selection (day-piece-charts README "Selection"): a tap on the price chart snaps to the
   # nearest date and draws a rule through it plus a label box naming the date and every series'
   # value there. Hover does the same on a desktop but cannot be scripted (it needs a real
   # pointer), so the tap is what is driven, which is also the phone's idiom.
-  - tap: { id: price-chart, at: [180, 120] }
+  - tap: { id: price_chart, at: [180, 120] }
   - wait_idle:
   - screenshot: { name: chart-selection }
 
@@ -84,46 +84,46 @@ flow:
   # navigation re-selects the watchlist, so the same two steps serve both shells.
   - nav_back:
   - navigate: { route: watchlist }
-  - tap: { id: wl-row-SPY }
-  - wait_for: { id: detail-price }
-  - assert_text: { id: detail-symbol, text: "SPY" }
-  - assert_text: { id: detail-price, text: "629.15" }
-  - assert_text: { id: detail-chg, text: "+2.58 (0.41%)" }
-  - select: { id: range-picker, index: 0 }
+  - tap: { id: wl_row:SPY }
+  - wait_for: { id: detail_price }
+  - assert_text: { id: detail_symbol, text: "SPY" }
+  - assert_text: { id: detail_price, text: "629.15" }
+  - assert_text: { id: detail_chg, text: "+2.58 (0.41%)" }
+  - select: { id: range_picker, index: 0 }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: detail-1m
-  - select: { id: range-picker, index: 3 }
+  - select: { id: range_picker, index: 3 }
   # Moving-average overlays + the range bars: the analysis surface on the detail page.
-  - assert_visible: { id: overlay-legend }
-  - assert_visible: { id: range-day }
-  - assert_visible: { id: range-52w }
+  - assert_visible: { id: overlay_legend }
+  - assert_visible: { id: range_day }
+  - assert_visible: { id: range_52w }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: detail
   # The overlay switch hides both lines and its own legend; it is persisted app-wide.
-  - toggle: { id: overlay-toggle, value: false }
-  - assert_value: { id: overlay-toggle, value: false }
+  - toggle: { id: overlay_toggle, value: false }
+  - assert_value: { id: overlay_toggle, value: false }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: detail-no-overlay
-  - toggle: { id: overlay-toggle, value: true }
-  - assert_visible: { id: overlay-legend }
+  - toggle: { id: overlay_toggle, value: true }
+  - assert_visible: { id: overlay_legend }
   # The analysis panel: drawdown by default, then the daily-move histogram and the monthly
   # heat map. Each is its own chart, swapped in by the picker.
-  - assert_visible: { id: analysis-drawdown }
-  - scroll_to: { id: analysis-drawdown }
+  - assert_visible: { id: analysis_drawdown }
+  - scroll_to: { id: analysis_drawdown }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: detail-drawdown
-  - select: { id: analysis-picker, index: 1 }
-  - assert_visible: { id: analysis-returns }
-  - scroll_to: { id: analysis-returns }
+  - select: { id: analysis_picker, index: 1 }
+  - assert_visible: { id: analysis_returns }
+  - scroll_to: { id: analysis_returns }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: detail-returns
-  - select: { id: analysis-picker, index: 2 }
-  - assert_visible: { id: analysis-monthly }
-  - scroll_to: { id: analysis-monthly }
+  - select: { id: analysis_picker, index: 2 }
+  - assert_visible: { id: analysis_monthly }
+  - scroll_to: { id: analysis_monthly }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: detail-monthly
-  - select: { id: analysis-picker, index: 0 }
-  - assert_visible: { id: analysis-drawdown }
+  - select: { id: analysis_picker, index: 0 }
+  - assert_visible: { id: analysis_drawdown }
 
 
   # Leave the watchlist tab at its root before switching tabs. Each tab owns its own push stack,
@@ -135,12 +135,12 @@ flow:
   # Manage: add a typed symbol (normalized to upper-case), visit it, remove it again so
   # reruns start from the same list.
   - navigate: { route: manage }
-  - wait_for: { id: sym-field }
-  - input: { id: sym-field, text: "hg=f" }
-  - tap: { id: sym-add }
-  - assert_text: { id: sym-status, key: manage_status_added }
-  - tap: { id: sym-add }
-  - assert_text: { id: sym-status, key: manage_status_empty }
+  - wait_for: { id: sym_field }
+  - input: { id: sym_field, text: "hg=f" }
+  - tap: { id: sym_add }
+  - assert_text: { id: sym_status, key: manage_status_added }
+  - tap: { id: sym_add }
+  - assert_text: { id: sym_status, key: manage_status_empty }
   - screenshot: manage
   # Visit it through its row: that row's tap calls `open_symbol`, the function written to serve
   # both shells, where a symbol route only exists on the desktop one.
@@ -153,25 +153,25 @@ flow:
   # capture matrix keeps the app installed and its state between variants (iOS in particular
   # keeps NSUserDefaults across a relaunch), so every variant starts from the previous one's
   # end, and the removal below is what makes that the 6 defaults again.
-  - scroll_to: { id: sym-rows }
-  - reorder: { id: sym-rows, from: 6, to: 0 }
-  - tap: { id: "sym-row-HG=F" }
-  - wait_for: { id: detail-price }
-  - assert_text: { id: detail-symbol, text: "HG=F" }
+  - scroll_to: { id: sym_rows }
+  - reorder: { id: sym_rows, from: 6, to: 0 }
+  - tap: { id: "sym_row:HG%3DF" }
+  - wait_for: { id: detail_price }
+  - assert_text: { id: detail_symbol, text: "HG=F" }
   - navigate: { route: manage }
-  - wait_for: { id: sym-field }
+  - wait_for: { id: sym_field }
   # The watchlist rows live in a recycling list (docs/list.md): rows realize lazily, and the
   # just-added row sits beyond the list's viewport, so surface it through the `reorder` step
   # (which addresses rows by index, realized or not), then remove it. Removing it from the
   # front restores the original order, and the final swap-and-back exercises reorder alone.
   # Already at the front from the reorder above, so the row is realized and addressable by id.
-  - tap: { id: "sym-remove-HG=F" }
-  - assert_text: { id: sym-status, key: manage_status_removed }
-  - reorder: { id: sym-rows, from: 1, to: 0 }
-  - reorder: { id: sym-rows, from: 0, to: 1 }
+  - tap: { id: "sym_remove:HG%3DF" }
+  - assert_text: { id: sym_status, key: manage_status_removed }
+  - reorder: { id: sym_rows, from: 1, to: 0 }
+  - reorder: { id: sym_rows, from: 0, to: 1 }
   # Adding a preset that is already tracked reports rather than duplicating.
-  - tap: { id: preset-add }
-  - assert_text: { id: sym-status, key: manage_status_exists }
+  - tap: { id: preset_add }
+  - assert_text: { id: sym_status, key: manage_status_exists }
 
   # Settings: the shared surface (https://daybrite.dev/docs/settings) as the app's own section
   # on every platform; its root lists About and the groups, and a row pushes a group's page.
@@ -179,25 +179,25 @@ flow:
   # asserted, because backends without Cap::Appearance hide it); the Data group the proxy,
   # the demo switch and the refresh action.
   - navigate: { route: settings }
-  - wait_for: { id: settings-root }
-  - tap: { id: prefs-group-general }
-  - wait_for: { id: language-picker }
+  - wait_for: { id: settings_root }
+  - tap: { id: prefs_group:general }
+  - wait_for: { id: language_picker }
   - screenshot: settings
   - nav_back:
-  - wait_for: { id: settings-root }
-  - tap: { id: prefs-group-data }
-  - wait_for: { id: refresh-all }
-  - assert_visible: { id: demo-toggle }
-  - assert_visible: { id: proxy-field }
+  - wait_for: { id: settings_root }
+  - tap: { id: prefs_group:data }
+  - wait_for: { id: refresh_all }
+  - assert_visible: { id: demo_toggle }
+  - assert_visible: { id: proxy_field }
   - screenshot: settings-data
   # About, from the root's header card: the version (not pinned; a literal would fail every
   # release bump) and the two links, Website and the Yahoo Finance data source.
   - nav_back:
-  - wait_for: { id: settings-root }
-  - tap: { id: settings-about }
-  - wait_for: { id: about-version }
-  - assert_visible: { id: about-link-0 }
-  - assert_visible: { id: about-link-1 }
+  - wait_for: { id: settings_root }
+  - tap: { id: settings_about }
+  - wait_for: { id: about_version }
+  - assert_visible: { id: about_link:0 }
+  - assert_visible: { id: about_link:1 }
   - screenshot: about
   - nav_back:
-  - wait_for: { id: settings-root }
+  - wait_for: { id: settings_root }

@@ -3,8 +3,8 @@ description: The Preferences window (https://daybrite.dev/docs/settings, desktop
   TRADER_MOCK=1) — the auto Settings… menu action opens the shared surface as a singleton
   window, on its General page.
 flow:
-  - wait_for: { id: watchlist-title }
+  - wait_for: { id: watchlist_title }
   - menu: { key: day-preferences }
-  - wait_for: { id: language-picker }
+  - wait_for: { id: language_picker }
   - screenshot: { name: prefs-window, window: day.preferences }
   - close_window: { window: day.preferences }

@@ -47,7 +47,7 @@ fn range_row(
     quote: Signal<Load<quotes::Quote>>,
     lo: impl Fn(&quotes::Quote) -> f64 + Copy + 'static,
     hi: impl Fn(&quotes::Quote) -> f64 + Copy + 'static,
-    id: &str,
+    id: day::ElementId,
 ) -> impl Piece {
     let lo_label = label(move || {
         quote.with(|l| {
@@ -67,7 +67,7 @@ fn range_row(
     .font(Font::Caption2);
     column((
         label(title).font(Font::Caption),
-        charts::range_bar(quote, lo, hi).id(id.to_string()),
+        charts::range_bar(quote, lo, hi).id(id),
         row((lo_label, spacer(), hi_label)).grow_w(),
     ))
     .spacing(2.0)
@@ -115,7 +115,7 @@ fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
         ],
     )
     .segmented()
-    .id("analysis-picker");
+    .id(day::id!(analysis_picker));
     // The caption and a three-segment picker share a row where there is room; on a phone the
     // picker takes the whole width, or its last segment lands off-screen.
     let header = adaptive((title, spacer(), control))
@@ -126,15 +126,19 @@ fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
         switch(
             move || picked.get(),
             move |a| match a {
-                Analysis::Drawdown => charts::drawdown_chart(quote).id("analysis-drawdown").any(),
+                Analysis::Drawdown => charts::drawdown_chart(quote)
+                    .id(day::id!(analysis_drawdown))
+                    .any(),
                 Analysis::Returns => {
                     charts::returns_histogram(quote, res::str::axis_return().format())
-                        .id("analysis-returns")
+                        .id(day::id!(analysis_returns))
                         .any()
                 }
-                Analysis::Monthly => charts::monthly_heat_map(quote).id("analysis-monthly").any(),
+                Analysis::Monthly => charts::monthly_heat_map(quote)
+                    .id(day::id!(analysis_monthly))
+                    .any(),
                 Analysis::Profile => charts::volume_profile(quote, sel)
-                    .id("analysis-profile")
+                    .id(day::id!(analysis_profile))
                     .any(),
             },
         ),
@@ -184,10 +188,10 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             label(move || quote.with(|l| l.ready().map(|q| q.name.clone()).unwrap_or_default()))
                 .font(Font::Title2)
                 .bold()
-                .id("detail-name"),
+                .id(day::id!(detail_name)),
             label(symbol.clone())
                 .font(Font::Footnote)
-                .id("detail-symbol"),
+                .id(day::id!(detail_symbol)),
         ))
         .spacing(2.0)
         .align(HAlign::Leading)
@@ -204,8 +208,8 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             // accessibility text setting like every other label on the page.
             .font(Font::LargeTitle)
             .bold()
-            .id("detail-price"),
-            change_chip(quote, "detail-chg".to_string()),
+            .id(day::id!(detail_price)),
+            change_chip(quote, day::id!(detail_chg)),
         ))
         .spacing(2.0)
         .align(HAlign::Trailing),
@@ -214,7 +218,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
 
     let range_picker = picker(range, charts::range_options())
         .segmented()
-        .id("range-picker");
+        .id(day::id!(range_picker));
     // The overlay preference is app-wide and persisted, so a two-way binding writes through
     // to prefs rather than living only for this page's lifetime.
     let overlay_on = quotes::overlay();
@@ -232,7 +236,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                         label(res::str::detail_loading()).font(Font::Callout),
                     ))
                     .spacing(Space::S)
-                    .id("detail-loading")
+                    .id(day::id!(detail_loading))
                 },
             ),
             when(
@@ -247,7 +251,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                     })
                     .font(Font::Callout)
                     .color(charts::trend_color(false))
-                    .id("detail-error")
+                    .id(day::id!(detail_error))
                 },
             ),
             range_picker,
@@ -256,7 +260,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             // two lines by their colors; the chart is otherwise three lines with no key.
             row((
                 label(res::str::overlay_label()).font(Font::Callout),
-                toggle(overlay_on).id("overlay-toggle"),
+                toggle(overlay_on).id(day::id!(overlay_toggle)),
                 spacer(),
                 when(
                     move || overlay_on.get(),
@@ -266,7 +270,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                             legend(charts::SMA50_COLOR, res::str::overlay_sma50()),
                         ))
                         .spacing(Space::M)
-                        .id("overlay-legend")
+                        .id(day::id!(overlay_legend))
                     },
                 ),
             ))
@@ -283,14 +287,14 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                     quote,
                     |q| q.low,
                     |q| q.high,
-                    "range-day",
+                    day::id!(range_day),
                 ),
                 range_row(
                     res::str::range_52w(),
                     quote,
                     |q| q.week52_low(),
                     |q| q.week52_high(),
-                    "range-52w",
+                    day::id!(range_52w),
                 ),
             ))
             .spacing(18.0)

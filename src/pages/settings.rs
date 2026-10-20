@@ -27,11 +27,11 @@ pub fn data_group() -> Group {
                         // An example, not a default: nothing is sent anywhere until the field
                         // holds a template the user chose.
                         .placeholder("https://relay.example/raw?url=%u")
-                        .id("proxy-field"),
+                        .id(day::id!(proxy_field)),
                 )
                 .row(
                     rows::action(res::str::settings_proxy_direct(), || quotes::PROXY.reset())
-                        .id("proxy-direct"),
+                        .id(day::id!(proxy_direct)),
                 )
                 .footer(res::str::settings_proxy_hint()),
         )
@@ -39,14 +39,17 @@ pub fn data_group() -> Group {
         // itself while the field above is empty; this makes them a choice everywhere.
         .section(
             Section::new()
-                .row(rows::toggle(&quotes::DEMO, res::str::settings_demo_label()).id("demo-toggle"))
+                .row(
+                    rows::toggle(&quotes::DEMO, res::str::settings_demo_label())
+                        .id(day::id!(demo_toggle)),
+                )
                 .footer(res::str::settings_demo_hint()),
         )
         .section(
             Section::new()
                 .row(
                     rows::action(res::str::settings_refresh(), quotes::reload_all)
-                        .id("refresh-all"),
+                        .id(day::id!(refresh_all)),
                 )
                 .footer(res::str::settings_refresh_hint()),
         )

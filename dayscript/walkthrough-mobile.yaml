@@ -14,114 +14,114 @@ name: day-trader-walkthrough-mobile
 description: The three-tab phone shell — watchlist, per-tab stacks, symbol management, settings.
 flow:
   - wait_for: { id: nav }
-  - wait_for: { id: watchlist-title }
+  - wait_for: { id: watchlist_title }
   - assert_route: { route: watchlist }
-  - assert_text: { id: data-source, key: data_mock }
-  - assert_text: { id: wl-price-SPY, text: "629.15" }
-  - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
-  - assert_text: { id: "wl-price-GC=F", text: "3203.55" }
-  - assert_text: { id: breadth-up, text: "1" }
-  - assert_text: { id: breadth-down, text: "5" }
-  - assert_visible: { id: breadth-donut }
-  - assert_visible: { id: performance-chart }
+  - assert_text: { id: data_source, key: data_mock }
+  - assert_text: { id: wl_price:SPY, text: "629.15" }
+  - assert_text: { id: wl_chg:SPY, text: "+2.58 (0.41%)" }
+  - assert_text: { id: "wl_price:GC%3DF", text: "3203.55" }
+  - assert_text: { id: breadth_up, text: "1" }
+  - assert_text: { id: breadth_down, text: "5" }
+  - assert_visible: { id: breadth_donut }
+  - assert_visible: { id: performance_chart }
   - screenshot: m-watchlist
 
   # The chip-mode control re-reads every chip at once; a full lap leaves the persisted setting
   # where it started, so a rerun sees the same screenshots.
-  - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-SPY, text: "+0.41%" }
-  - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-SPY, text: "+2.58" }
-  - tap: { id: chip-mode }
-  - assert_text: { id: wl-chg-SPY, text: "+2.58 (0.41%)" }
+  - tap: { id: chip_mode }
+  - assert_text: { id: wl_chg:SPY, text: "+0.41%" }
+  - tap: { id: chip_mode }
+  - assert_text: { id: wl_chg:SPY, text: "+2.58" }
+  - tap: { id: chip_mode }
+  - assert_text: { id: wl_chg:SPY, text: "+2.58 (0.41%)" }
 
   # A row opens the symbol inside the Watchlist tab's own stack, so the route nests under the
   # tab key rather than replacing it. This is the difference from the sidebar shell: the tab's
   # segment comes first, then the page its stack holds.
-  - tap: { id: wl-row-DIA }
-  - wait_for: { id: detail-price }
+  - tap: { id: wl_row:DIA }
+  - wait_for: { id: detail_price }
   - assert_route: { route: watchlist/DIA }
-  - assert_text: { id: detail-price, text: "443.83" }
-  - assert_text: { id: detail-name, text: "SPDR Dow Jones Industrial Average ETF" }
-  - assert_visible: { id: overlay-legend }
+  - assert_text: { id: detail_price, text: "443.83" }
+  - assert_text: { id: detail_name, text: "SPDR Dow Jones Industrial Average ETF" }
+  - assert_visible: { id: overlay_legend }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: m-detail
-  - select: { id: analysis-picker, index: 2 }
-  - assert_visible: { id: analysis-monthly }
-  - scroll_to: { id: analysis-monthly }
+  - select: { id: analysis_picker, index: 2 }
+  - assert_visible: { id: analysis_monthly }
+  - scroll_to: { id: analysis_monthly }
   - pause: { secs: 1.0 } # let the chart transition settle
   - screenshot: m-detail-monthly
-  - select: { id: analysis-picker, index: 0 }
+  - select: { id: analysis_picker, index: 0 }
   # Back returns to this tab's own root.
   - nav_back: {}
-  - wait_for: { id: watchlist-title }
+  - wait_for: { id: watchlist_title }
   - assert_route: { route: watchlist }
 
   # The Symbols tab: its own stack, with the editable list as the root.
   - navigate: { route: manage }
-  - wait_for: { id: sym-field }
+  - wait_for: { id: sym_field }
   - assert_route: { route: manage }
-  - input: { id: sym-field, text: "hg=f" }
-  - tap: { id: sym-add }
-  - assert_text: { id: sym-status, key: manage_status_added }
+  - input: { id: sym_field, text: "hg=f" }
+  - tap: { id: sym_add }
+  - assert_text: { id: sym_status, key: manage_status_added }
   - screenshot: m-symbols
   # A row here pushes onto the Symbols stack, so the nesting is under that tab instead. Tapped
   # on a row that is already realized: the just-added HG=F sits past the viewport in the
   # recycling list, and an unrealized row has no element for a tap to find (docs/list.md).
-  - tap: { id: sym-row-SPY }
-  - wait_for: { id: detail-price }
+  - tap: { id: sym_row:SPY }
+  - wait_for: { id: detail_price }
   - assert_route: { route: manage/SPY }
-  - assert_text: { id: detail-symbol, text: "SPY" }
+  - assert_text: { id: detail_symbol, text: "SPY" }
   - nav_back: {}
-  - wait_for: { id: sym-field }
+  - wait_for: { id: sym_field }
   # Remove it again so a rerun starts from the same list. Rows realize lazily in the recycling
   # list (docs/list.md), so reach the just-added row through the `reorder` step, which addresses
   # rows by index whether or not they are realized.
-  - scroll_to: { id: sym-rows }
-  - reorder: { id: sym-rows, from: 6, to: 0 }
-  - tap: { id: "sym-remove-HG=F" }
-  - assert_text: { id: sym-status, key: manage_status_removed }
-  - reorder: { id: sym-rows, from: 1, to: 0 }
-  - reorder: { id: sym-rows, from: 0, to: 1 }
+  - scroll_to: { id: sym_rows }
+  - reorder: { id: sym_rows, from: 6, to: 0 }
+  - tap: { id: "sym_remove:HG%3DF" }
+  - assert_text: { id: sym_status, key: manage_status_removed }
+  - reorder: { id: sym_rows, from: 1, to: 0 }
+  - reorder: { id: sym_rows, from: 0, to: 1 }
 
   # Settings tab: the shared surface's root (About, then one row per group), and each group's
   # page pushed from its row. The theme picker is not asserted; backends without
   # Cap::Appearance hide it.
   - navigate: { route: settings }
-  - wait_for: { id: settings-root }
+  - wait_for: { id: settings_root }
   - assert_route: { route: settings }
-  - tap: { id: prefs-group-general }
-  - wait_for: { id: language-picker }
+  - tap: { id: prefs_group:general }
+  - wait_for: { id: language_picker }
   - screenshot: m-settings
   - nav_back: {}
-  - wait_for: { id: settings-root }
-  - tap: { id: prefs-group-data }
-  - wait_for: { id: refresh-all }
-  - assert_visible: { id: demo-toggle }
+  - wait_for: { id: settings_root }
+  - tap: { id: prefs_group:data }
+  - wait_for: { id: refresh_all }
+  - assert_visible: { id: demo_toggle }
   - screenshot: m-settings-data
   - nav_back: {}
-  - wait_for: { id: settings-root }
+  - wait_for: { id: settings_root }
   # About, from the root's header card: the version (not pinned; a literal would fail every
   # release bump) and the two links, Website and the Yahoo Finance data source.
-  - tap: { id: settings-about }
-  - wait_for: { id: about-version }
-  - assert_visible: { id: about-link-0 }
-  - assert_visible: { id: about-link-1 }
+  - tap: { id: settings_about }
+  - wait_for: { id: about_version }
+  - assert_visible: { id: about_link:0 }
+  - assert_visible: { id: about_link:1 }
   - screenshot: m-about
   # Back to the root, so the tab is where the next visit expects it.
   - nav_back: {}
-  - wait_for: { id: settings-root }
+  - wait_for: { id: settings_root }
 
   # Switching tabs leaves each stack where it was: open a symbol, leave, come back to it.
   - navigate: { route: watchlist }
-  - tap: { id: wl-row-SPY }
-  - wait_for: { id: detail-price }
+  - tap: { id: wl_row:SPY }
+  - wait_for: { id: detail_price }
   - assert_route: { route: watchlist/SPY }
   - navigate: { route: settings }
-  - wait_for: { id: settings-root }
+  - wait_for: { id: settings_root }
   - navigate: { route: watchlist }
-  - wait_for: { id: detail-price }
+  - wait_for: { id: detail_price }
   - assert_route: { route: watchlist/SPY }
-  - assert_text: { id: detail-price, text: "629.15" }
+  - assert_text: { id: detail_price, text: "629.15" }
   - nav_back: {}
-  - wait_for: { id: watchlist-title }
+  - wait_for: { id: watchlist_title }

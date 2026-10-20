@@ -106,7 +106,7 @@ fn window_shell(prefs: Prefs) -> impl Piece {
         } else {
             Either::Right(sidebar_shell(prefs.clone()))
         };
-        shell.id("nav")
+        shell.id(day::id!(nav))
     })
 }
 
@@ -222,7 +222,7 @@ fn watchlist_stack() -> impl Piece {
     nav_stack(watchlist_path(), pages::watchlist_page())
         .title(res::str::nav_watchlist())
         .destination(|key: &String| symbol_page(key))
-        .id("watchlist-stack")
+        .id(day::id!(watchlist_stack))
 }
 
 /// The Symbols tab: the editable list as the stack's root, each row pushing that symbol's
@@ -235,11 +235,11 @@ fn symbols_stack() -> impl Piece {
         .toolbar(
             pages::add_symbol_command()
                 .toolbar_item()
-                .id("tb-add-symbol")
+                .id(day::id!(tb_add_symbol))
                 .placement(ToolbarPlacement::Primary),
         )
         .destination(|key: &String| symbol_page(key))
-        .id("symbols-stack")
+        .id(day::id!(symbols_stack))
 }
 
 /// The desktop shell: the sidebar this app has always had, with one row per tracked symbol,
@@ -283,7 +283,7 @@ fn sidebar_header() -> impl Piece {
     column((
         label(res::str::app_title())
             .font(Font::Headline)
-            .id("app-title"),
+            .id(day::id!(app_title)),
         label(res::str::app_tagline()).font(Font::Caption),
     ))
     .spacing(2.0)

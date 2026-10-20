@@ -253,7 +253,7 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     .plot_insets(STACKED_INSETS)
     // After every Chart builder: `.id` is a decorator, and the chart's own builders are not
     // reachable once it is wrapped.
-    .id("price-chart")
+    .id(day::id!(price_chart))
     .height(280.0)
     .grow_w()
 }

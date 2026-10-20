@@ -69,7 +69,7 @@ pub fn manage_page() -> impl Piece {
                         quotes::remove(&slot.key());
                         status.set(Status::Removed);
                     })
-                    .id_of(move || format!("sym-remove-{}", slot.get())),
+                    .id_of(move || day::id!(sym_remove, slot.get())),
             ))
             .spacing(Space::S)
             .padding(Insets::horizontal(4.0))
@@ -80,7 +80,7 @@ pub fn manage_page() -> impl Piece {
             })
             // Reactively, like the Remove button above: a recycled cell rebinds to another
             // symbol, and a build-time id would address the wrong row after a reorder.
-            .id_of(move || format!("sym-row-{}", slot.get()))
+            .id_of(move || day::id!(sym_row, slot.get()))
         },
     )
     .row_height(RowHeight::Uniform(52.0))
@@ -96,7 +96,7 @@ pub fn manage_page() -> impl Piece {
         })
         .label(res::str::manage_remove()),
     )
-    .id("sym-rows")
+    .id(day::id!(sym_rows))
     .height(312.0);
 
     let presets: Vec<(&str, String)> = quotes::PRESETS
@@ -114,16 +114,16 @@ pub fn manage_page() -> impl Piece {
                         res::str::manage_symbol_label(),
                         text_field(entry)
                             .placeholder("SPY".to_string())
-                            .id("sym-field"),
+                            .id(day::id!(sym_field)),
                     ),
                     label(res::str::manage_symbol_hint()).font(Font::Footnote),
                     button(res::str::manage_add())
                         .action(add_typed)
                         .prominent()
-                        .id("sym-add"),
+                        .id(day::id!(sym_add)),
                     labeled(
                         res::str::manage_preset_label(),
-                        picker(preset, presets).id("preset-picker"),
+                        picker(preset, presets).id(day::id!(preset_picker)),
                     ),
                     button(res::str::manage_add_preset())
                         .action(move || {
@@ -133,13 +133,13 @@ pub fn manage_page() -> impl Piece {
                                 Status::Exists
                             });
                         })
-                        .id("preset-add"),
+                        .id(day::id!(preset_add)),
                 ))
                 .title(res::str::manage_add_section()),
             )),
             label(move || status.get().text())
                 .font(Font::Footnote)
-                .id("sym-status"),
+                .id(day::id!(sym_status)),
         ))
         .spacing(Space::M)
         .align(HAlign::Leading)
@@ -196,7 +196,11 @@ pub fn install_app_menu() {
 
 /// Shared by the Symbols menu and the sidebar toolbar.
 pub fn add_symbol_command() -> Command {
-    Command::new("add-symbol", res::str::menu_add_symbol(), prompt_for_symbol)
-        .image(res::vectors::add_symbol)
-        .shortcut(Shortcut::primary("n"))
+    Command::new(
+        day::id!(add_symbol),
+        res::str::menu_add_symbol(),
+        prompt_for_symbol,
+    )
+    .image(res::vectors::add_symbol)
+    .shortcut(Shortcut::primary("n"))
 }
