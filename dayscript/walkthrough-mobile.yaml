@@ -1,4 +1,4 @@
-# Day Trader walkthrough, phone shell (https://daybrite.dev/docs/dayscript).
+# Day Trader walkthrough, phone shell (https://daybrite.dev/docs/how-to/dayscript).
 #
 #     day launch -t ios-uikit --env TRADER_MOCK=1 --script dayscript/walkthrough-mobile.yaml
 #

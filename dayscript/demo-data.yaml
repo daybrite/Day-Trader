@@ -1,4 +1,4 @@
-# Day Trader's bundled demo data (https://daybrite.dev/docs/dayscript).
+# Day Trader's bundled demo data (https://daybrite.dev/docs/how-to/dayscript).
 #
 # Run with the demo switch on and the mock off, so every quote below comes out of the app's own
 # bundle instead of the network:

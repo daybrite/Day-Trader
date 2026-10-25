@@ -1,4 +1,4 @@
-//! One module per navigation destination (https://daybrite.dev/docs/navigation), plus the one
+//! One module per navigation destination (https://daybrite.dev/docs/how-to/navigation), plus the one
 //! piece of chrome every destination carries: the demo-data notice.
 
 use crate::quotes;

@@ -1,5 +1,5 @@
 //! The data layer: the persisted watchlist, Yahoo Finance fetches, deterministic mock series,
-//! and one memoized reactive [`Resource`] per symbol (https://daybrite.dev/docs/async).
+//! and one memoized reactive [`Resource`] per symbol (https://daybrite.dev/docs/explanation/async).
 //!
 //! Live data comes from one unofficial Yahoo Finance endpoint over day-part-http (docs/http.md):
 //! `https://query1.finance.yahoo.com/v8/finance/chart/<sym>?range=2y&interval=1d`. The response
@@ -39,7 +39,7 @@ const PREF_SYMBOLS: &str = "trader.symbols";
 const PREF_SORT: &str = "trader.sort";
 const PREF_CHIP: &str = "trader.chip";
 const PREF_OVERLAY: &str = "trader.overlay";
-/// The HTTP proxy template quote fetches go through (https://daybrite.dev/docs/settings): a
+/// The HTTP proxy template quote fetches go through (https://daybrite.dev/docs/reference/settings): a
 /// typed setting the Data group's Proxy row edits live, empty unless the user sets one. There
 /// is no default: an unset proxy means "fetch directly" on a native build and selects the
 /// bundled demo data on the web ([`DataSource`]).
@@ -459,7 +459,7 @@ pub struct Watchlist {
 
 impl Ambient for Watchlist {
     fn create() -> Self {
-        let seed: Vec<String> = match day_part_prefs::get(PREF_SYMBOLS) {
+        let seed: Vec<String> = match day_part_preferences::get(PREF_SYMBOLS) {
             // A saved list wins, even an empty one; a fresh install gets the defaults.
             // Entries saved under the previous provider's tickers are rewritten on the way in,
             // so an upgrade keeps its watchlist instead of showing unknown symbols.
@@ -474,16 +474,16 @@ impl Ambient for Watchlist {
             symbols: Signal::new(seed),
             generation: Signal::new(0),
             sort: Signal::new(
-                day_part_prefs::get(PREF_SORT)
+                day_part_preferences::get(PREF_SORT)
                     .map(|s| Sort::from_key(&s))
                     .unwrap_or(Sort::Manual),
             ),
             chip: Signal::new(
-                day_part_prefs::get(PREF_CHIP)
+                day_part_preferences::get(PREF_CHIP)
                     .map(|s| ChipMode::from_key(&s))
                     .unwrap_or(ChipMode::Both),
             ),
-            overlay: Signal::new(day_part_prefs::get(PREF_OVERLAY).is_none_or(|s| s != "0")),
+            overlay: Signal::new(day_part_preferences::get(PREF_OVERLAY).is_none_or(|s| s != "0")),
         }
     }
 }
@@ -684,7 +684,7 @@ pub fn sort() -> Signal<Sort> {
 }
 
 pub fn set_sort(v: Sort) {
-    day_part_prefs::set(PREF_SORT, v.key());
+    day_part_preferences::set(PREF_SORT, v.key());
     sort().set(v);
 }
 
@@ -712,7 +712,7 @@ pub fn chip_mode() -> Signal<ChipMode> {
 /// Advance every chip one step and remember it.
 pub fn cycle_chip_mode() {
     let next = chip_mode().get_untracked().next();
-    day_part_prefs::set(PREF_CHIP, next.key());
+    day_part_preferences::set(PREF_CHIP, next.key());
     chip_mode().set(next);
 }
 
@@ -728,7 +728,7 @@ pub fn overlay() -> Signal<bool> {
 /// would close a loop with the effect that watches it: the effect reads, writes, and re-reads
 /// until the reactive runtime trips its cycle guard and the main thread stops responding.
 pub fn persist_overlay(on: bool) {
-    day_part_prefs::set(PREF_OVERLAY, if on { "1" } else { "0" });
+    day_part_preferences::set(PREF_OVERLAY, if on { "1" } else { "0" });
 }
 
 /// The watchlist in display order: the user's own arrangement, or a view sorted by name or by
@@ -801,7 +801,7 @@ fn generation() -> Signal<u64> {
 }
 
 fn persist(list: &[String]) {
-    day_part_prefs::set(PREF_SYMBOLS, &list.join(","));
+    day_part_preferences::set(PREF_SYMBOLS, &list.join(","));
 }
 
 /// Normalize what the user typed into a Yahoo ticker: trimmed, uppercased.

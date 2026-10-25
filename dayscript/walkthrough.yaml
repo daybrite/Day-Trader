@@ -1,4 +1,4 @@
-# Day Trader walkthrough (https://daybrite.dev/docs/dayscript).
+# Day Trader walkthrough (https://daybrite.dev/docs/how-to/dayscript).
 #
 # Run against the deterministic mock so every price below is exact on every target:
 #
@@ -173,7 +173,7 @@ flow:
   - tap: { id: preset_add }
   - assert_text: { id: sym_status, key: manage_status_exists }
 
-  # Settings: the shared surface (https://daybrite.dev/docs/settings) as the app's own section
+  # Settings: the shared surface (https://daybrite.dev/docs/reference/settings) as the app's own section
   # on every platform; its root lists About and the groups, and a row pushes a group's page.
   # The General group carries the language picker on every backend (the theme picker is not
   # asserted, because backends without Cap::Appearance hide it); the Data group the proxy,

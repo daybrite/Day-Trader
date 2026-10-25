@@ -6,9 +6,9 @@ HarmonyOS, and the web.
 
 <p align="center">
   <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/en/watchlist.png" width="200" alt="The watchlist on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/en/detail.png" width="200" alt="A symbol's detail on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-material/phone/en/detail.png" width="200" alt="A symbol's detail on Android"></kbd>
   <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/en/detail-1m.png" width="200" alt="One month of a symbol on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/en/manage.png" width="200" alt="Managing the watchlist on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-material/phone/en/manage.png" width="200" alt="Managing the watchlist on Android"></kbd>
 </p>
 
 ## Run it in one command
@@ -72,9 +72,9 @@ The sorted list, the absolute-change chips, and the Arabic layout:
 
 <p align="center">
   <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/en/watchlist-sorted.png" width="200" alt="Watchlist sorted by today's move, on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/en/watchlist-chip-absolute.png" width="200" alt="Absolute-change chips on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-material/phone/en/watchlist-chip-absolute.png" width="200" alt="Absolute-change chips on Android"></kbd>
   <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/ios-uikit/iphone/ar/watchlist.png" width="200" alt="The watchlist in Arabic on iPhone"></kbd>
-  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-mdc/phone/fr/settings.png" width="200" alt="Settings in French on Android"></kbd>
+  <kbd><img src="https://daybrite.github.io/Day-Trader/gallery/android-material/phone/fr/settings.png" width="200" alt="Settings in French on Android"></kbd>
 </p>
 
 ## Build from a clone
@@ -87,7 +87,7 @@ day doctor                       # toolchains present and missing, with fixes
 day launch -t macos-appkit       # build + run
 day launch -t windows-winui      # on a Windows host
 day launch -t ios-uikit          # needs a booted Simulator
-day launch -t android-mdc        # needs a JDK and a running emulator or device
+day launch -t android-material        # needs a JDK and a running emulator or device
 day launch -t web-dom            # serves the WebAssembly build locally
 ```
 
@@ -95,7 +95,7 @@ A bare `cargo build` uses the crate's default `mock` backend, which is what lets
 `cargo check` work with no flags. To pick a toolkit from plain cargo, turn the default off first:
 
 ```sh
-cargo build --no-default-features --features appkit    # or gtk / qt / uikit / mdc / xaml / dom
+cargo build --no-default-features --features appkit    # or gtk / qt / uikit / material / xaml / dom
 ```
 
 Set `TRADER_MOCK=1` to replace the Yahoo Finance fetch with a deterministic generated series, so

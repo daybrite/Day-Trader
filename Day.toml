@@ -1,4 +1,4 @@
-# Day.toml: the Day project manifest (https://daybrite.dev/docs/cli).
+# Day.toml: the Day project manifest (https://daybrite.dev/docs/reference/cli).
 #
 # `name` and `version` come from Cargo.toml's [package]; they are never restated here.
 # Any [app] property can be overridden per platform ([app.ios]), per toolkit ([app.qt]),
@@ -9,7 +9,7 @@ schema = 1
 id = "dev.daybrite.daytrader"
 title = "Day Trader"
 build = 9
-targets = ["windows-winui", "macos-appkit", "linux-gtk", "linux-qt", "ios-uikit", "android-mdc", "harmony-arkui", "web-dom"]
+targets = ["windows-winui", "macos-appkit", "linux-gtk", "linux-qt", "ios-uikit", "android-material", "harmony-arkui", "web-dom"]
 
 [window]
 width = 960

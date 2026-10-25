@@ -1,4 +1,4 @@
-//! Settings: the Data group of the shared settings surface (https://daybrite.dev/docs/settings):
+//! Settings: the Data group of the shared settings surface (https://daybrite.dev/docs/reference/settings):
 //! the proxy template quote fetches go through, the demo-data switch, and the refresh action.
 //! Appearance, language and About come from day-piece-settings itself (`lib.rs`).
 

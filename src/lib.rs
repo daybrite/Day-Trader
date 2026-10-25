@@ -2,7 +2,7 @@
 //! on Apple Stocks. `root()` is the whole UI, shared by every platform: a sidebar nav
 //! whose symbol rows derive reactively from the persisted watchlist (`quotes.rs`), a rich
 //! watchlist overview, a canvas-drawn detail chart per instrument, a manage page, and the
-//! shared settings surface (https://daybrite.dev/docs/settings).
+//! shared settings surface (https://daybrite.dev/docs/reference/settings).
 
 use day::prelude::*;
 use day_piece_settings::prelude::*;
@@ -52,7 +52,7 @@ pub fn root() -> impl Piece {
     // Registers every locale under `resource/locales/` (generated, §18.5) before the first
     // page builds.
     res::locales::install();
-    // Settings and About (https://daybrite.dev/docs/settings): appearance and language from
+    // Settings and About (https://daybrite.dev/docs/reference/settings): appearance and language from
     // Day's catalog, the Data group (pages/settings.rs), the app's name and version from
     // Day.toml. A desktop gets the App menu's Settings… and About items and their windows;
     // both shells below also keep a Settings entry, the same pages in the window itself.
@@ -60,7 +60,7 @@ pub fn root() -> impl Piece {
         .about(
             About::from_manifest()
                 .icon(res::images::app_logo)
-                .link(day::tr("day-about-website"), "https://daybrite.dev")
+                .link(res::str::day_about_website(), "https://daybrite.dev")
                 .link(res::str::settings_data_link(), "https://finance.yahoo.com"),
         )
         .group(general_group(res::locales::ALL))
