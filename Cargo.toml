@@ -33,23 +33,23 @@ name = "dayapp"
 crate-type = ["rlib"]
 
 [dependencies]
-day = { package = "day-app", version = "0.6" }
+day = { package = "day-app", version = "0.*" }
 # Watchlist persistence (docs/prefs.md) and the Yahoo Finance quote fetches over the platform
 # HTTP stack (docs/http.md): system proxies and TLS come from the OS; ureq+rustls only on
 # Linux/OHOS.
-day-part-preferences = "0.6"
-day-piece-settings = "0.6"
-day-part-http = "0.6"
+day-part-preferences = "0.*"
+day-piece-settings = "0.*"
+day-part-http = "0.*"
 # Every chart on every page: the price chart and its overlays, the volume strip, the analysis
 # panel, the sparklines, the performance comparison and the range tracks are compositions of the
 # grammar this crate draws on the canvas. Bare URL, no ref, like the day crates above.
-day-piece-charts = "0.4"
+day-piece-charts = "0.*"
 # The quote endpoint answers JSON (Yahoo retired the CSV download in 2024; see src/quotes.rs),
 # so the data layer needs a parser. Same crate Day-Skies uses for its forecast API.
 serde_json = "1"
 
 [build-dependencies]
-day-build = "0.6"
+day-build = "0.*"
 
 
 [workspace]
