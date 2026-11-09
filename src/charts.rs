@@ -373,7 +373,7 @@ pub fn returns_histogram(quote: Signal<Load<Quote>>, axis_label: String) -> impl
                     .x_range(value("Return", *lo), value("Return", hi))
                     .foreground(faded(trend_color(*lo >= 0.0), 0.85))
                     .corner_radius(2.0)
-                    .width(ch::Dimension::Inset(1.0)),
+                    .width(ch::MarkDimension::Inset(1.0)),
             );
         }
         marks.push(
@@ -437,8 +437,8 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
                     value("Year", year.to_string()),
                 )
                 .foreground(ch::diverging(t))
-                .width(ch::Dimension::Inset(1.0))
-                .height(ch::Dimension::Inset(1.0))
+                .width(ch::MarkDimension::Inset(1.0))
+                .height(ch::MarkDimension::Inset(1.0))
                 .corner_radius(3.0)
                 .annotation(
                     AnnotationPosition::Overlay,
