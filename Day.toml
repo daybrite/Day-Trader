@@ -8,7 +8,7 @@ schema = 1
 [app]
 id = "dev.daybrite.daytrader"
 title = "Day Trader"
-build = 10
+build = 11
 targets = ["windows-winui", "macos-appkit", "linux-gtk", "linux-qt", "ios-uikit", "android-material", "harmony-arkui", "web-dom"]
 
 [window]
