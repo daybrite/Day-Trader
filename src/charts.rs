@@ -255,7 +255,7 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     // reachable once it is wrapped.
     .id(day::id!(price_chart))
     .height(280.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// The padded extent of the closes in view, for a chart that pins its y axis to them.
@@ -308,7 +308,7 @@ pub fn volume_strip(quote: Signal<Load<Quote>>) -> impl Piece {
     .bare()
     .plot_insets(STRIP_INSETS)
     .height(56.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// How far the price sits below its running peak, as an area in the loss color. The reading a
@@ -348,7 +348,7 @@ pub fn drawdown_chart(quote: Signal<Load<Quote>>) -> impl Piece {
     .x_tick_count(4)
     .plot_insets(STACKED_INSETS)
     .height(200.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// The distribution of one-session moves in the window: a histogram of daily returns, losses in
@@ -400,7 +400,7 @@ pub fn returns_histogram(quote: Signal<Load<Quote>>, axis_label: String) -> impl
     .x_label(axis_label)
     .y_tick_count(4)
     .height(200.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// A calendar of monthly returns: months across, years down, each cell colored on the diverging
@@ -455,7 +455,7 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
     .no_grid()
     .label_size(10.0)
     .height(140.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// A watchlist-row sparkline: the last month as a tiny line + soft fill, trend-colored.
@@ -557,7 +557,7 @@ pub fn performance_chart(list: Signal<Vec<String>>) -> impl Piece {
     .x_tick_count(4)
     .legend(LegendPosition::Bottom)
     .height(240.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// Risk against return: one point per watchlist symbol, volatility across, annualized return up.
@@ -615,7 +615,7 @@ pub fn risk_return_scatter(
             .guides(ch::Guides::CROSSHAIR),
     )
     .height(260.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// How the watchlist moves together: pairwise correlation of daily returns, as a matrix.
@@ -664,7 +664,7 @@ pub fn correlation_matrix(
             .guides(ch::Guides::CROSSHAIR),
     )
     .height(260.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// A correlation as a color: the loss hue for negative, the gain hue for positive, and near-white
@@ -721,7 +721,7 @@ pub fn volume_profile(
             .guides(ch::Guides::RULE),
     )
     .height(220.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// Today's breadth as a ring: advancing symbols in green, declining in red. A stacked bar in
@@ -800,5 +800,5 @@ pub fn range_bar(
         trailing: 6.0,
     })
     .height(20.0)
-    .grow_w()
+    .grow(Dimension::Width)
 }

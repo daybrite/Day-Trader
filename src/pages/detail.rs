@@ -36,7 +36,7 @@ fn stat(
     ))
     .spacing(1.0)
     .align(HAlign::Leading)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// A titled range bar: caption over the low→high track with the price marked on it.
@@ -68,11 +68,11 @@ fn range_row(
     column((
         label(title).font(Font::Caption),
         charts::range_bar(quote, lo, hi).id(id),
-        row((lo_label, spacer(), hi_label)).grow_w(),
+        row((lo_label, spacer(), hi_label)).grow(Dimension::Width),
     ))
     .spacing(2.0)
     .align(HAlign::Leading)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 /// One overlay legend entry: a short colored rule beside its label.
@@ -120,7 +120,7 @@ fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
     // picker takes the whole width, or its last segment lands off-screen.
     let header = adaptive((title, spacer(), control))
         .spacing(Space::S)
-        .grow_w();
+        .grow(Dimension::Width);
     column((
         header,
         switch(
@@ -145,7 +145,7 @@ fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
     ))
     .spacing(Space::S)
     .align(HAlign::Leading)
-    .grow_w()
+    .grow(Dimension::Width)
 }
 
 fn stats_grid(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
@@ -174,7 +174,7 @@ fn stats_grid(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
     ))
     .spacing(14.0)
     .align(Alignment::TopLeading)
-    .grow_w()
+    .grow(Dimension::Width)
     .card()
 }
 
@@ -195,7 +195,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
         ))
         .spacing(2.0)
         .align(HAlign::Leading)
-        .grow_w(),
+        .grow(Dimension::Width),
         column((
             label(move || {
                 quote.with(|l| {
@@ -276,7 +276,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             ))
             .spacing(10.0)
             .align(VAlign::Center)
-            .grow_w(),
+            .grow(Dimension::Width),
             charts::volume_strip(quote),
             analysis_panel(quote),
             // Where the price sits inside today's band and inside the year's: the reading the
@@ -298,7 +298,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                 ),
             ))
             .spacing(18.0)
-            .grow_w(),
+            .grow(Dimension::Width),
             stats_grid(quote),
             label(res::str::data_attribution()).font(Font::Caption2),
         ))
@@ -306,5 +306,5 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
         .align(HAlign::Leading)
         .padding(Space::L),
     )
-    .grow()
+    .grow(Dimension::Both)
 }

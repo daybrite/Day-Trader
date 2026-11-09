@@ -80,7 +80,7 @@ fn breadth_strip(list: Signal<Vec<String>>) -> impl Piece {
         column((v.id(id), label(caption).font(Font::Caption2)))
             .spacing(1.0)
             .align(HAlign::Leading)
-            .grow_w()
+            .grow(Dimension::Width)
     };
     // The mover cells carry the symbol as their value and the percentage in the caption. Both
     // on the value line wraps to two lines on a phone, which drops that cell's caption below
@@ -153,7 +153,7 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
     // The title and a five-segment picker do not fit side by side on a phone; there they stack.
     let header = adaptive((title, spacer(), range_picker))
         .spacing(Space::S)
-        .grow_w();
+        .grow(Dimension::Width);
     // Two selections, one per chart: each is written and read by the chart that owns it, and the
     // readouts below say in words what the guides say in pixels.
     let risk_sel = Signal::new(None);
@@ -204,7 +204,7 @@ fn row_card(symbol: String) -> impl Piece {
         ))
         .spacing(2.0)
         .align(HAlign::Leading)
-        .grow_w(),
+        .grow(Dimension::Width),
         charts::sparkline(quote),
         column((
             label(move || {
@@ -287,7 +287,7 @@ pub fn watchlist_page() -> impl Piece {
                     .id(day::id!(sort_picker));
                     adaptive((sorter, spacer(), chip_mode_button()))
                         .spacing(Space::S)
-                        .grow_w()
+                        .grow(Dimension::Width)
                 },
             ),
             each(
@@ -303,5 +303,5 @@ pub fn watchlist_page() -> impl Piece {
         .align(HAlign::Leading)
         .padding(Space::L),
     )
-    .grow()
+    .grow(Dimension::Both)
 }

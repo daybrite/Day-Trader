@@ -63,7 +63,7 @@ pub fn manage_page() -> impl Piece {
                 ))
                 .spacing(1.0)
                 .align(HAlign::Leading)
-                .grow_w(),
+                .grow(Dimension::Width),
                 button(res::str::manage_remove())
                     .action(move || {
                         quotes::remove(&slot.key());
@@ -145,7 +145,7 @@ pub fn manage_page() -> impl Piece {
         .align(HAlign::Leading)
         .padding(Space::L),
     )
-    .grow()
+    .grow(Dimension::Both)
 }
 
 /// Ask for a ticker and add it. The `+` in the Symbols tab's navigation bar and the
