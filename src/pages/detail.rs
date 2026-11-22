@@ -1,14 +1,13 @@
 //! One instrument's page: big price header with change chip, the shared range picker, the price
 //! chart + volume strip, an analysis panel with three readings of the same history, the range
 //! tracks, and a three-column stats grid. Every value is bound to the symbol's reactive
-//! [`Resource`] so a refetch or range tap updates in place.
+//! [`AsyncData`] so a refetch or range tap updates in place.
 
 use crate::charts;
 use crate::pages::watchlist::change_chip;
 use crate::quotes;
 use crate::res;
 use day::prelude::*;
-use day::reactive::Load;
 
 fn fmt_volume(v: f64) -> String {
     if v >= 1e9 {
@@ -25,12 +24,12 @@ fn fmt_volume(v: f64) -> String {
 /// One stats cell: caption over value, value bound to the quote.
 fn stat(
     title: LocalizedText,
-    quote: Signal<Load<quotes::Quote>>,
+    quote: quotes::QuoteData,
     value: impl Fn(&quotes::Quote) -> String + 'static,
 ) -> impl Piece {
     column((
         label(title).font(Font::Caption),
-        label(move || quote.with(|l| l.ready().map(&value).unwrap_or_default()))
+        label(move || quote.with_state(|l| l.value().map(&value).unwrap_or_default()))
             .font(Font::Callout)
             .bold(),
     ))
@@ -44,22 +43,22 @@ fn stat(
 /// sites pass non-capturing closures, which are Copy.
 fn range_row(
     title: LocalizedText,
-    quote: Signal<Load<quotes::Quote>>,
+    quote: quotes::QuoteData,
     lo: impl Fn(&quotes::Quote) -> f64 + Copy + 'static,
     hi: impl Fn(&quotes::Quote) -> f64 + Copy + 'static,
     id: day::ElementId,
 ) -> impl Piece {
     let lo_label = label(move || {
-        quote.with(|l| {
-            l.ready()
+        quote.with_state(|l| {
+            l.value()
                 .map(|q| format!("{:.2}", lo(q)))
                 .unwrap_or_default()
         })
     })
     .font(Font::Caption2);
     let hi_label = label(move || {
-        quote.with(|l| {
-            l.ready()
+        quote.with_state(|l| {
+            l.value()
                 .map(|q| format!("{:.2}", hi(q)))
                 .unwrap_or_default()
         })
@@ -100,7 +99,7 @@ enum Analysis {
 /// composition (a time axis, a continuous histogram axis, two categorical axes), and the axes
 /// are properties of the chart, not of its marks. The choice is page-local: a way of looking at
 /// this symbol, not a setting.
-fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
+fn analysis_panel(quote: quotes::QuoteData) -> impl Piece {
     let picked = Signal::new(Analysis::Drawdown);
     // The selection the volume profile writes and reads (day-piece-charts README "Selection").
     let sel = Signal::new(None);
@@ -148,7 +147,7 @@ fn analysis_panel(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
     .grow(Dimension::Width)
 }
 
-fn stats_grid(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
+fn stats_grid(quote: quotes::QuoteData) -> impl Piece {
     // The day's and the year's high/low are not cells here; the range bars above show them
     // with the price positioned between them, which is strictly more information in less
     // space. What remains is what a bar cannot say.
@@ -179,16 +178,18 @@ fn stats_grid(quote: Signal<Load<quotes::Quote>>) -> impl Piece {
 }
 
 pub fn detail_page(symbol: &str) -> impl Piece + use<> {
-    let quote = quotes::resource_for(symbol).signal();
+    let quote = quotes::data_for(symbol);
     let range = quotes::range();
     let symbol = symbol.to_string();
 
     let header = row((
         column((
-            label(move || quote.with(|l| l.ready().map(|q| q.name.clone()).unwrap_or_default()))
-                .font(Font::Title2)
-                .bold()
-                .id(day::id!(detail_name)),
+            label(move || {
+                quote.with_state(|l| l.value().map(|q| q.name.clone()).unwrap_or_default())
+            })
+            .font(Font::Title2)
+            .bold()
+            .id(day::id!(detail_name)),
             label(symbol.clone())
                 .font(Font::Footnote)
                 .id(day::id!(detail_symbol)),
@@ -198,8 +199,8 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
         .grow(Dimension::Width),
         column((
             label(move || {
-                quote.with(|l| {
-                    l.ready()
+                quote.with_state(|l| {
+                    l.value()
                         .map(|q| format!("{:.2}", q.last))
                         .unwrap_or_else(|| "…".to_string())
                 })
@@ -229,7 +230,7 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
             header,
             super::demo_notice(),
             when(
-                move || quote.with(|l| l.is_loading()),
+                move || quote.with_state(|l| l.is_loading()),
                 || {
                     row((
                         spinner(),
@@ -240,10 +241,10 @@ pub fn detail_page(symbol: &str) -> impl Piece + use<> {
                 },
             ),
             when(
-                move || quote.with(|l| l.error().is_some()),
+                move || quote.with_state(|l| l.error().is_some()),
                 move || {
                     label(move || {
-                        quote.with(|l| {
+                        quote.with_state(|l| {
                             l.error()
                                 .map(|e| res::str::detail_error(e.to_string()).format())
                                 .unwrap_or_default()

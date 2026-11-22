@@ -1,5 +1,5 @@
 //! The data layer: the persisted watchlist, Yahoo Finance fetches, deterministic mock series,
-//! and one memoized reactive [`Resource`] per symbol (https://daybrite.dev/docs/explanation/async).
+//! and one memoized reactive [`AsyncData`] per symbol (https://daybrite.dev/docs/explanation/async).
 //!
 //! Live data comes from one unofficial Yahoo Finance endpoint over day-part-http (docs/http.md):
 //! `https://query1.finance.yahoo.com/v8/finance/chart/<sym>?range=2y&interval=1d`. The response
@@ -427,7 +427,7 @@ pub fn monthly_returns(closes: &[f64], dates: &[String]) -> Vec<(i64, u32, f64)>
         .collect()
 }
 
-/// A fetch/parse failure, displayable (`Error + Send + Sync` so it rides `Load::Failed`).
+/// A fetch/parse failure, displayable (`typed error carried by `LoadState::Failed`).
 #[derive(Debug)]
 pub struct QuoteError(pub String);
 
@@ -450,7 +450,7 @@ impl std::error::Error for QuoteError {}
 #[derive(Clone, Copy)]
 pub struct Watchlist {
     symbols: Signal<Vec<String>>,
-    /// Bumped by the settings Refresh action; every quote Resource tracks it.
+    /// Bumped by the settings Refresh action; every quote AsyncData tracks it.
     generation: Signal<u64>,
     sort: Signal<Sort>,
     chip: Signal<ChipMode>,
@@ -740,11 +740,7 @@ pub fn sorted_symbols(list: Vec<String>, order: Sort) -> Vec<String> {
         Sort::Manual => {}
         Sort::Name => out.sort(),
         Sort::Change => out.sort_by(|a, b| {
-            let pct = |s: &String| {
-                resource_for(s)
-                    .signal()
-                    .with(|l| l.ready().map(|q| q.change_pct()))
-            };
+            let pct = |s: &String| data_for(s).with_state(|l| l.value().map(|q| q.change_pct()));
             match (pct(a), pct(b)) {
                 (Some(x), Some(y)) => y.partial_cmp(&x).unwrap_or(std::cmp::Ordering::Equal),
                 (Some(_), None) => std::cmp::Ordering::Less,
@@ -774,10 +770,7 @@ pub fn breadth(list: &[String]) -> Option<Breadth> {
     };
     let mut any = false;
     for s in list {
-        let Some(pct) = resource_for(s)
-            .signal()
-            .with(|l| l.ready().map(|q| q.change_pct()))
-        else {
+        let Some(pct) = data_for(s).with_state(|l| l.value().map(|q| q.change_pct())) else {
             continue;
         };
         any = true;
@@ -845,20 +838,54 @@ pub fn move_symbol(from: usize, to: usize) {
 }
 
 /// Refetch every tracked symbol (the settings Refresh action): one generation bump, every
-/// Resource tracks it as its source.
+/// AsyncData tracks it as its source.
 pub fn reload_all() {
     let g = generation();
     g.set(g.get_untracked() + 1);
+    let data: Vec<_> = Quotes::app()
+        .0
+        .borrow()
+        .iter()
+        .map(|(_, entry)| entry.data)
+        .collect();
+    day::reactive::batch(|| {
+        for data in data {
+            data.refetch();
+        }
+    });
 }
 
 // ---------------------------------------------------------------------------
-// Per-symbol Resources, memoized by symbol (the Day-Skies STATES pattern).
+// Per-symbol async data, memoized by symbol (the Day-Skies STATES pattern).
 // ---------------------------------------------------------------------------
 
 /// One symbol's memoized fetch.
-type QuoteEntry = (String, day::reactive::Resource<Quote>);
+pub type QuoteData = day::reactive::AsyncData<Quote, QuoteError>;
+type QuoteEntry = (String, Rc<CachedQuote>);
 
-/// Per-symbol quote Resources, memoized by symbol. App-wide (docs/state.md): a fetch cache over
+struct CachedQuote {
+    data: QuoteData,
+    scope: day::reactive::Scope,
+    readers: RefCell<Vec<day::reactive::Scope>>,
+}
+impl CachedQuote {
+    fn handle(self: &Rc<Self>) -> QuoteData {
+        let reader = day::reactive::Scope::current();
+        if reader != day::reactive::Scope::root() && !self.readers.borrow().contains(&reader) {
+            self.readers.borrow_mut().push(reader);
+            let entry = self.clone();
+            reader.on_cleanup(move || entry.readers.borrow_mut().retain(|scope| *scope != reader));
+        }
+        self.data
+    }
+}
+impl Drop for CachedQuote {
+    fn drop(&mut self) {
+        self.scope.dispose();
+    }
+}
+
+/// Per-symbol quote async data, memoized by symbol. App-wide (docs/state.md): a fetch cache over
 /// shared data, so two windows watching the same symbol read one load.
 #[derive(Clone)]
 struct Quotes(Rc<RefCell<Vec<QuoteEntry>>>);
@@ -869,25 +896,43 @@ impl Ambient for Quotes {
     }
 }
 
-pub fn resource_for(symbol: &str) -> day::reactive::Resource<Quote> {
+pub fn data_for(symbol: &str) -> QuoteData {
     let cell = Quotes::app().0;
     {
-        if let Some((_, r)) = cell.borrow().iter().find(|(s, _)| s == symbol) {
-            return *r;
+        if let Some((_, entry)) = cell.borrow().iter().find(|(s, _)| s == symbol) {
+            return entry.handle();
         }
         let sym = symbol.to_string();
-        // Root scope, not the calling page's build scope: the resource must outlive the pane
-        // that first touched it (the Day-Skies detached-resource rationale).
-        let r = day::reactive::Scope::root().enter(|| {
-            day::reactive::Resource::new(move || generation().get(), move |_| load(sym.clone()))
+        // The cache owns the fetch scope; mounted readers lease it so an open window
+        // remains valid when its symbol leaves the watchlist.
+        let scope = day::reactive::Scope::root().create_child();
+        let r = scope.enter(|| {
+            day::reactive::AsyncData::new(
+                move || (source(), proxy().get()),
+                move |_| load(sym.clone()),
+            )
         });
-        cell.borrow_mut().push((symbol.to_string(), r));
-        r
+        let entry = Rc::new(CachedQuote {
+            data: r,
+            scope,
+            readers: RefCell::new(Vec::new()),
+        });
+        let data = entry.handle();
+        cell.borrow_mut().push((symbol.to_string(), entry));
+        data
     }
 }
 
 fn drop_state(symbol: &str) {
-    Quotes::app().0.borrow_mut().retain(|(s, _)| s != symbol);
+    let cache = Quotes::app().0;
+    let removed = {
+        let mut entries = cache.borrow_mut();
+        entries
+            .iter()
+            .position(|(s, _)| s == symbol)
+            .map(|i| entries.remove(i))
+    };
+    drop(removed);
 }
 
 /// Is the app forced into deterministic mock mode? `day::env` rather than `std::env`: on
@@ -1196,7 +1241,7 @@ async fn gate_acquire(epoch: u64) -> Option<GateSlot> {
 ///
 /// Changing the proxy calls [`reload_all`], and without this check the requests aimed at the old
 /// proxy keep the two gate slots for as long as their retries run, up to a couple of minutes,
-/// during which the new setting looks like it did nothing. `Resource` already drops a superseded
+/// during which the new setting looks like it did nothing. `AsyncData` already drops a superseded
 /// load, so abandoning one loses nothing.
 fn superseded(epoch: u64) -> bool {
     generation().get_untracked() != epoch
@@ -1204,7 +1249,7 @@ fn superseded(epoch: u64) -> bool {
 
 /// A held slot, given back when it drops.
 ///
-/// Drop rather than a release call at the end of the fetch: superseding a `Resource` load aborts
+/// Drop rather than a release call at the end of the fetch: superseding a `AsyncData` load aborts
 /// it by dropping its future mid-await, so a release written as a statement never runs. Two
 /// leaked slots wedge the gate shut and the app stops fetching at all, which is what changing
 /// the proxy used to do, since that supersedes every load in flight (measured: zero requests
@@ -1664,5 +1709,39 @@ mod interception_tests {
                 .0
                 .contains("HTTP 429")
         );
+    }
+}
+
+#[cfg(test)]
+mod async_cache_tests {
+    use super::*;
+    use day::reactive::{AsyncData, LoadState, Scope};
+
+    #[test]
+    fn evicting_a_cache_entry_keeps_open_readers_alive_until_their_scope_ends() {
+        let scope = Scope::root().create_child();
+        let data = scope.enter(|| {
+            AsyncData::optional(
+                || None::<()>,
+                |()| std::future::pending::<Result<Quote, QuoteError>>(),
+            )
+        });
+        let entry = Rc::new(CachedQuote {
+            data,
+            scope,
+            readers: RefCell::new(Vec::new()),
+        });
+        let weak = Rc::downgrade(&entry);
+        let reader = Scope::root().create_child();
+        let handle = reader.enter(|| entry.handle());
+        // Repeated lookups in one reader scope retain just one lease.
+        reader.enter(|| entry.handle());
+        assert_eq!(entry.readers.borrow().len(), 1);
+        drop(entry);
+        assert!(scope.is_alive());
+        assert!(matches!(handle.state(), LoadState::Idle));
+        reader.dispose();
+        assert!(weak.upgrade().is_none());
+        assert!(!scope.is_alive());
     }
 }

@@ -133,7 +133,10 @@ day patch --local /path/to/day
   (appearance, language) and Data (proxy, demo data, refresh) as a Settings entry on every
   platform, the App menu's Settings… and About windows on desktop.
 - `src/quotes.rs` is the data layer: the persisted watchlist, the Yahoo Finance fetch, and one
-  memoized reactive [`Resource`](https://daybrite.dev/docs/internal/async) per symbol.
+  memoized reactive [`AsyncData`](https://daybrite.dev/docs/explanation/async) per symbol.
+  Refreshes retain the last quote, keeping charts visible through loading and refresh errors.
+  Cache entries remain alive while open views use them and release their scope after eviction
+  and the last view closes.
 - `src/charts.rs` composes every chart from
   [day-piece-charts](https://github.com/daybrite/day-piece-charts): the price chart with its
   overlays, the volume strip, the drawdown, histogram and monthly heat map, the sparklines, the

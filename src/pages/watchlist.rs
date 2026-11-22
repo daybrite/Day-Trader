@@ -23,14 +23,11 @@ pub fn change_text(q: &quotes::Quote, mode: quotes::ChipMode) -> String {
 /// The change chip: white text on the trend color, rounded, the Stocks signature. What it
 /// reads (absolute, percent, or both) is app-wide state driven by [`chip_mode_button`], so
 /// every chip on every page changes together.
-pub fn change_chip(
-    quote: Signal<day::reactive::Load<quotes::Quote>>,
-    id: day::ElementId,
-) -> impl Piece {
+pub fn change_chip(quote: quotes::QuoteData, id: day::ElementId) -> impl Piece {
     let mode = quotes::chip_mode();
     label(move || {
-        quote.with(|l| {
-            l.ready()
+        quote.with_state(|l| {
+            l.value()
                 .map(|q| change_text(q, mode.get()))
                 .unwrap_or_default()
         })
@@ -40,8 +37,8 @@ pub fn change_chip(
     .id(id)
     .padding(Insets::symmetric(8.0, 3.0))
     .background(move || {
-        quote.with(|l| {
-            l.ready()
+        quote.with_state(|l| {
+            l.value()
                 .map(|q| charts::trend_color(q.change() >= 0.0))
                 .unwrap_or(Color::rgba(0.5, 0.5, 0.5, 0.4))
         })
@@ -193,14 +190,16 @@ fn performance_card(list: Signal<Vec<String>>) -> impl Piece {
 }
 
 fn row_card(symbol: String) -> impl Piece {
-    let quote = quotes::resource_for(&symbol).signal();
+    let quote = quotes::data_for(&symbol);
     let nav_to = symbol.clone();
     let title = symbol.clone();
     row((
         column((
             label(title).font(Font::Headline).bold(),
-            label(move || quote.with(|l| l.ready().map(|q| q.name.clone()).unwrap_or_default()))
-                .font(Font::Footnote),
+            label(move || {
+                quote.with_state(|l| l.value().map(|q| q.name.clone()).unwrap_or_default())
+            })
+            .font(Font::Footnote),
         ))
         .spacing(2.0)
         .align(HAlign::Leading)
@@ -208,8 +207,8 @@ fn row_card(symbol: String) -> impl Piece {
         charts::sparkline(quote),
         column((
             label(move || {
-                quote.with(|l| {
-                    l.ready()
+                quote.with_state(|l| {
+                    l.value()
                         .map(|q| format!("{:.2}", q.last))
                         .unwrap_or_else(|| "…".to_string())
                 })

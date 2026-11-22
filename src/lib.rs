@@ -76,7 +76,7 @@ pub fn root() -> impl Piece {
     // Start every tracked symbol's fetch now, in the (permanent) root scope.
     let list = quotes::symbols();
     for s in list.get_untracked() {
-        let _ = quotes::resource_for(&s);
+        let _ = quotes::data_for(&s);
     }
 
     // Two shells over the same pages (docs/size-classes.md). A phone gets the platform's

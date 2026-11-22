@@ -8,7 +8,6 @@
 
 use crate::quotes::{self, Quote};
 use day::prelude::*;
-use day::reactive::Load;
 use day_piece_charts as ch;
 use day_piece_charts::{
     AnnotationPosition, Coordinate, Datum, Insets, Interpolation, LegendPosition, Mark, chart,
@@ -149,14 +148,14 @@ fn month_names() -> Vec<String> {
 /// The big price chart: a gradient area under the price line in the trend color, a dashed
 /// reference at the window's first close, the moving-average overlays beneath the line, a halo dot
 /// on the latest price, dates along the bottom and price labels down the trailing edge.
-pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
+pub fn price_chart(quote: quotes::QuoteData) -> impl Piece {
     let overlay = quotes::overlay();
     // What the pointer is over. Owned here rather than by the chart, so the readout under the
     // chart and the guides on it are two views of one thing (docs/charts.md "Selection").
     let sel = Signal::new(None);
     let range = quotes::range();
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         let Some((closes, dates)) = window(&q, window_days(range)) else {
@@ -263,17 +262,17 @@ pub fn price_chart(quote: Signal<Load<Quote>>) -> impl Piece {
 }
 
 /// The padded extent of the closes in view, for a chart that pins its y axis to them.
-fn windowed_price_domain(quote: Signal<Load<Quote>>, range: Signal<usize>) -> Option<(f64, f64)> {
-    quote.with(|l| {
-        l.ready()
+fn windowed_price_domain(quote: quotes::QuoteData, range: Signal<usize>) -> Option<(f64, f64)> {
+    quote.with_state(|l| {
+        l.value()
             .and_then(|q| window(q, window_days(range)).map(|(c, _)| price_domain(c)))
     })
 }
 
 /// The first and last instants in view, for a strip that shares the price chart's time axis.
-fn windowed_date_domain(quote: Signal<Load<Quote>>, range: Signal<usize>) -> Option<(f64, f64)> {
-    quote.with(|l| {
-        l.ready().and_then(|q| {
+fn windowed_date_domain(quote: quotes::QuoteData, range: Signal<usize>) -> Option<(f64, f64)> {
+    quote.with_state(|l| {
+        l.value().and_then(|q| {
             let (_, dates) = window(q, window_days(range))?;
             Some((
                 ch::parse_iso_date(&dates[0])?,
@@ -287,10 +286,10 @@ fn windowed_date_domain(quote: Signal<Load<Quote>>, range: Signal<usize>) -> Opt
 /// chart, trend-colored by that session's direction. The x domain is pinned to the chart's own
 /// so the two line up bar for bar; the bars at either end are cut in half by that pin, which is
 /// where the price line ends too.
-pub fn volume_strip(quote: Signal<Load<Quote>>) -> impl Piece {
+pub fn volume_strip(quote: quotes::QuoteData) -> impl Piece {
     let range = quotes::range();
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         let Some((closes, dates)) = window(&q, window_days(range)) else {
@@ -318,11 +317,11 @@ pub fn volume_strip(quote: Signal<Load<Quote>>) -> impl Piece {
 /// How far the price sits below its running peak, as an area in the loss color. The reading a
 /// price line hides: two symbols can end a year at the same gain and have spent it very
 /// differently on the way.
-pub fn drawdown_chart(quote: Signal<Load<Quote>>) -> impl Piece {
+pub fn drawdown_chart(quote: quotes::QuoteData) -> impl Piece {
     let red = trend_color(false);
     let range = quotes::range();
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         let Some((closes, dates)) = window(&q, window_days(range)) else {
@@ -359,10 +358,10 @@ pub fn drawdown_chart(quote: Signal<Load<Quote>>) -> impl Piece {
 /// red and gains in green, with a dashed rule at zero. Each bin is a rectangle spanning its own
 /// edges on a continuous axis, so the axis labels itself in round percentages rather than naming
 /// every bin.
-pub fn returns_histogram(quote: Signal<Load<Quote>>, axis_label: String) -> impl Piece {
+pub fn returns_histogram(quote: quotes::QuoteData, axis_label: String) -> impl Piece {
     let range = quotes::range();
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         let Some((closes, _)) = window(&q, window_days(range)) else {
@@ -410,9 +409,9 @@ pub fn returns_histogram(quote: Signal<Load<Quote>>, axis_label: String) -> impl
 /// A calendar of monthly returns: months across, years down, each cell colored on the diverging
 /// ramp around zero and printed with its percentage. Two categorical axes, which is what a heat
 /// map is in the grammar.
-pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
+pub fn monthly_heat_map(quote: quotes::QuoteData) -> impl Piece {
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         // Tracked: the chart re-records when the appearance changes.
@@ -462,9 +461,9 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
 }
 
 /// A watchlist-row sparkline: the last month as a tiny line + soft fill, trend-colored.
-pub fn sparkline(quote: Signal<Load<Quote>>) -> impl Piece {
+pub fn sparkline(quote: quotes::QuoteData) -> impl Piece {
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         let closes = quotes::tail(&q.closes, 22);
@@ -498,8 +497,8 @@ pub fn sparkline(quote: Signal<Load<Quote>>) -> impl Piece {
         marks
     })
     .y_domain_with(move || {
-        quote.with(|l| {
-            l.ready().and_then(|q| {
+        quote.with_state(|l| {
+            l.value().and_then(|q| {
                 let closes = quotes::tail(&q.closes, 22);
                 (closes.len() >= 2).then(|| price_domain(closes))
             })
@@ -520,8 +519,8 @@ pub fn performance_chart(list: Signal<Vec<String>>) -> impl Piece {
         let days = window_days(range);
         let mut marks: Vec<Mark> = Vec::new();
         for symbol in list.get() {
-            let quote = quotes::resource_for(&symbol).signal();
-            let Some(q) = quote.with(|l| l.ready().cloned()) else {
+            let quote = quotes::data_for(&symbol);
+            let Some(q) = quote.with_state(|l| l.value().cloned()) else {
                 continue;
             };
             let Some((closes, dates)) = window(&q, days) else {
@@ -578,8 +577,8 @@ pub fn risk_return_scatter(
         let days = window_days(range);
         let mut marks: Vec<Mark> = Vec::new();
         for symbol in list.get() {
-            let quote = quotes::resource_for(&symbol).signal();
-            let Some(q) = quote.with(|l| l.ready().cloned()) else {
+            let quote = quotes::data_for(&symbol);
+            let Some(q) = quote.with_state(|l| l.value().cloned()) else {
                 continue;
             };
             let Some((closes, _)) = window(&q, days) else {
@@ -638,8 +637,8 @@ pub fn correlation_matrix(
         let series: Vec<(String, Vec<f64>)> = symbols
             .iter()
             .filter_map(|symbol| {
-                let quote = quotes::resource_for(symbol).signal();
-                let q = quote.with(|l| l.ready().cloned())?;
+                let quote = quotes::data_for(symbol);
+                let q = quote.with_state(|l| l.value().cloned())?;
                 let (closes, _) = window(&q, days)?;
                 Some((symbol.clone(), quotes::daily_returns(closes)))
             })
@@ -684,13 +683,10 @@ fn correlation_color(c: f64) -> Color {
 ///
 /// A horizontal bar chart (the y axis discrete, the x continuous), which is the same `bar` mark
 /// with its channels the other way round.
-pub fn volume_profile(
-    quote: Signal<Load<Quote>>,
-    sel: Signal<Option<ch::Selection>>,
-) -> impl Piece {
+pub fn volume_profile(quote: quotes::QuoteData, sel: Signal<Option<ch::Selection>>) -> impl Piece {
     let range = quotes::range();
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         let Some((closes, _)) = window(&q, window_days(range)) else {
@@ -759,12 +755,12 @@ pub fn breadth_donut(list: Signal<Vec<String>>) -> impl Piece {
 /// because canvas text carries neither the reader's font scale nor RTL mirroring. Two rounded
 /// rules on one x axis whose domain is the band itself, and a two-mark dot where the price is.
 pub fn range_bar(
-    quote: Signal<Load<Quote>>,
+    quote: quotes::QuoteData,
     lo: impl Fn(&Quote) -> f64 + 'static,
     hi: impl Fn(&Quote) -> f64 + 'static,
 ) -> impl Piece {
     chart(move || {
-        let Some(q) = quote.with(|l| l.ready().cloned()) else {
+        let Some(q) = quote.with_state(|l| l.value().cloned()) else {
             return Vec::new();
         };
         let (lo_v, hi_v) = (lo(&q), hi(&q));
