@@ -36,8 +36,8 @@ pub fn demo_notice() -> impl Piece {
             .bold()
             .id(day::id!(demo_notice))
             .padding(Insets::symmetric(10.0, 12.0))
-            .background(Color::rgba(0.95, 0.65, 0.10, 0.22))
-            .corner_radius(10.0)
+            .background(SystemColor::Warning.with_alpha(0.22))
+            .corner_radius(Radius::M)
         },
     )
 }

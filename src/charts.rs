@@ -55,13 +55,17 @@ pub fn trend_color(up: bool) -> Color {
     }
 }
 
-fn grid_color(dark: bool) -> Color {
-    if dark {
-        Color::rgba(1.0, 1.0, 1.0, 0.12)
-    } else {
-        Color::rgba(0.0, 0.0, 0.0, 0.10)
-    }
-}
+/// The neutral band behind a range track, a little stronger in the dark.
+const TRACK: Ink = Ink::adaptive(
+    Color::rgba(0.0, 0.0, 0.0, 0.10),
+    Color::rgba(1.0, 1.0, 1.0, 0.12),
+);
+
+/// A heat-map label near the neutral middle of the ramp, which is light in both appearances.
+const NEUTRAL_LABEL: Ink = Ink::adaptive(
+    Color::rgba(0.0, 0.0, 0.0, 0.75),
+    Color::rgba(0.0, 0.0, 0.0, 0.8),
+);
 
 /// The margins the price chart, the volume strip and the drawdown chart all share, so their time
 /// axes line up: the trailing column holds the price labels, and the leading edge leaves room for
@@ -411,7 +415,8 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
             return Vec::new();
         };
-        let dark = day::dark_mode();
+        // Tracked: the chart re-records when the appearance changes.
+        let neutral = day::resolve(NEUTRAL_LABEL);
         let months = quotes::monthly_returns(&q.closes, &q.dates);
         let names = month_names();
         // The ramp's reach: the biggest move either way, and never so small that a quiet year
@@ -427,10 +432,8 @@ pub fn monthly_heat_map(quote: Signal<Load<Quote>>) -> impl Piece {
                 // Light text on the saturated ends, the chart's own label color near neutral.
                 let ink = if (t - 0.5).abs() > 0.28 {
                     Color::WHITE
-                } else if dark {
-                    Color::rgba(0.0, 0.0, 0.0, 0.8)
                 } else {
-                    Color::rgba(0.0, 0.0, 0.0, 0.75)
+                    neutral
                 };
                 ch::rect(
                     value("Month", names[(*month as usize - 1).min(11)].clone()),
@@ -764,7 +767,6 @@ pub fn range_bar(
         let Some(q) = quote.with(|l| l.ready().cloned()) else {
             return Vec::new();
         };
-        let dark = day::dark_mode();
         let (lo_v, hi_v) = (lo(&q), hi(&q));
         let at = lo_v + q.position_in(lo_v, hi_v) * (hi_v - lo_v);
         let line = trend_color(q.change() >= 0.0);
@@ -774,7 +776,7 @@ pub fn range_bar(
             // information and the band as the backdrop.
             ch::rule_y(level())
                 .x_range(value("Price", lo_v), value("Price", hi_v))
-                .foreground(grid_color(dark))
+                .foreground(day::resolve(TRACK))
                 .line_width(5.0)
                 .rounded(),
             // The filled portion, in the day's trend color, from the low up to the price.
